@@ -6,7 +6,7 @@ export default function NotFound() {
     <div className="flex flex-col items-center justify-center h-screen space-y-6 px-4 text-center">
       {/* Logo & branding */}
       <div className="space-y-4">
-        <Image src="/logo.svg" alt="KrishiAI Logo" width={80} height={80} className="mx-auto" />
+        <Image src="/logo.svg" alt="KrishiAI Logo" width={80} height={80} className="mx-auto" priority />
         <h1 className="text-4xl font-bold text-gray-800">404</h1>
         <h2 className="text-2xl font-semibold text-gray-700">Page Not Found</h2>
         <p className="text-gray-500">

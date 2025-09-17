@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center h-screen space-y-4">
       <div className="text-center space-y-4">
-        <Image src="/logo.svg" alt="KrishiAI Logo" width={80} height={80} className="w-20 mx-auto" />
+        <Image src="/logo.svg" alt="KrishiAI Logo" width={80} height={80} className="w-20 mx-auto" priority />
         <h1 className="text-3xl font-bold text-gray-800">KrishiAI</h1>
         <p className="text-gray-600">AI-powered farming decisions, simplified</p>
       </div>

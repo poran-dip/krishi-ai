@@ -2,11 +2,7 @@
 const CACHE_NAME = "krishi-ai-cache-v1";
 
 const PRECACHE_ASSETS = [
-  "/",
-  "/_not-found",
-  "/dashboard",
   "/logo.svg",
-  "/globals.css",
   "/favicon.ico",
 ];
 
