@@ -114,6 +114,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
               <input
                 type="email"
                 id="forgotEmail"
+                autoComplete="email"
                 name="forgotEmail"
                 value={formData.forgotEmail}
                 onChange={handleInputChange}
@@ -206,6 +207,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
             <input
               type="email"
               id="email"
+              autoComplete="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
@@ -272,6 +274,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
               <label className="flex items-center">
                 <input
                   type="checkbox"
+                  id="rememberMe"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
