@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
@@ -10,6 +11,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "prisma": "^6.16.2",
     "@prisma/client": "^6.16.2",
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
@@ -31,7 +33,6 @@
     "@types/serviceworker": "^0.0.153",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    "prisma": "^6.16.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
