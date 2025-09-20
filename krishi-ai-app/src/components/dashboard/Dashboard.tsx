@@ -7,17 +7,32 @@ import Footer from "./Footer";
 
 interface DashboardProps {
   name: string
+  fullName: string
+  email: string
+  onLogout: () => void
 }
 
-const Dashboard = ({ name }: DashboardProps) => {
+const Dashboard = ({ name, fullName, email, onLogout }: DashboardProps) => {
+  // Get time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Good Morning'
+    if (hour < 17) return 'Good Afternoon'
+    return 'Good Evening'
+  }
+
   return (
     <div className="flex flex-col w-full mx-auto space-y-4 sm:space-y-6">
-      <Navbar />
+      <Navbar 
+        userName={fullName}
+        userEmail={email}
+        onLogout={onLogout}
+      />
 
       <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Greeting Section */}
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-gray-900">Good Morning, {name}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{getGreeting()}, {name}!</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">Here&apos;s what&apos;s happening on your farm today</p>
         </div>
         

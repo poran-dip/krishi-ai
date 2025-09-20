@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model Farmer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  crops     Crop[]
+  settings  FarmerSettings?
+  
+  @@map("farmers")
+}
+
+model FarmerSettings {
+  id          String   @id @default(cuid())
+  
+  latitude    Float?
+  longitude   Float?
+
+  city        String?
+  state       String?
+  zipCode     String?
+  country     String   @default("IN")
+
+  primaryContact    ContactMethod @default(EMAIL)
+  secondaryContact  ContactMethod?
+  
+  languagePreference String @default("en")
+  timezone          String @default("Asia/Kolkata")
+  currency          String @default("INR")
+  
+  equipments        Json?  // e.g., ["tractor", "harvester", "irrigation_system"]
+  
+  farmSize          Float?  // in acres
+  farmType          FarmType @default(MIXED)
+  organicCertified  Boolean @default(false)
+  
+  emailNotifications    Boolean @default(true)
+  pushNotifications     Boolean @default(true)
+
+  weatherAlerts         Boolean @default(true)
+  marketPriceAlerts     Boolean @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  farmerId  String @unique
+  farmer    Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  
+  @@map("farmer_settings")
+}
+
+model Crop {
+  id          String   @id @default(cuid())
+  name        String
+  variety     String?
+  plantedDate DateTime
+  harvestDate DateTime?
+  quantity    Float?   // in kg
+  status      CropStatus @default(PLANTED)
+  notes       String?
+  
+  farmerId    String
+  farmer      Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("crops")
+}
+
+enum CropStatus {
+  PLANTED
+  GROWING
+  READY_FOR_HARVEST
+  HARVESTED
+  FAILED
+}
+
+enum ContactMethod {
+  EMAIL
+  PHONE
+  WHATSAPP
+}
+
+enum FarmType {
+  CROP_FARMING
+  MIXED
+  ORGANIC
+  GREENHOUSE
+}

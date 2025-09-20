@@ -13,7 +13,13 @@ const notifications = [
   { id: 3, type: "reminder", message: "Time to apply fertilizer to rice field", time: "1d ago" }
 ];
 
-const Navbar = () => {
+interface NavbarProps {
+  userName: string
+  userEmail: string
+  onLogout: () => void
+}
+
+const Navbar = ({ userName, userEmail, onLogout }: NavbarProps) => {
   const [showNavbar, setShowNavbar] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
 
@@ -103,9 +109,14 @@ const Navbar = () => {
         />
       )}
 
-      {showProfile &&
-        <ProfilePane onClose={() => setShowProfile(false)} />
-      }
+      {showProfile && (
+        <ProfilePane 
+          userName={userName}
+          userEmail={userEmail}
+          onClose={() => setShowProfile(false)}
+          onLogout={onLogout}
+        />
+      )}
 
       {/* Spacer to prevent content from hiding behind sticky navbar */}
       <div className="h-12"></div>

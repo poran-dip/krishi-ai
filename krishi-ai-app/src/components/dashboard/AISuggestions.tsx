@@ -40,7 +40,7 @@ const AISuggestions = () => {
 
             {/* Action button */}
             <button 
-              className="col-span-2 bg-green-700 hover:bg-green-800 text-white text-sm md:text-base font-medium px-2 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto cursor-pointer"
+              className="col-span-2 bg-green-600 hover:bg-green-700 text-white text-sm md:text-base font-medium px-2 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto cursor-pointer"
               onClick={() => setShowRecommendations(true)}
             >
               Show AI Suggestions

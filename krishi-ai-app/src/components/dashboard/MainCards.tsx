@@ -1,8 +1,52 @@
+import { Farmer } from "@/app/api/v1/protected/profile/route";
+import { authUtils } from "@/lib/auth";
+import { useEffect, useState } from "react";
+
 const MainCards = () => {
-    const currentCrops = [
-    { id: 1, name: "Wheat", area: "2.5 acres", status: "Growing", daysLeft: 45, health: "Good" },
-    { id: 2, name: "Rice", area: "1.8 acres", status: "Harvesting", daysLeft: 5, health: "Excellent" },
-    { id: 3, name: "Maize", area: "3.2 acres", status: "Planting", daysLeft: 120, health: "New" }
+  const [farmerData, setFarmerData] = useState<Farmer | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFarmerData = async () => {
+      try {
+          const token = authUtils.getToken(); // make sure you actually have it
+          const response = await fetch('/api/v1/protected/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+        if (response.ok) {
+          const result = await response.json();
+          setFarmerData(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching farmer data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFarmerData();
+  }, []);
+
+  const defaultData = {
+    totalAcres: 7.5,
+    activeCrops: 3,
+    revenue: 45000
+  };
+
+  const currentCrops = farmerData?.crops?.map((crop, index) => ({
+    id: crop.id || index + 1,
+    name: crop.name,
+    area: "7.5 acres", // Using entire farm size as requested
+    status: "Growing", // Default status as requested
+    daysLeft: Math.floor(Math.random() * 120) + 30, // Random days between 30-150
+    health: ["Good", "Excellent", "Fair"][Math.floor(Math.random() * 3)]
+  })) || [
+    { id: 1, name: "Wheat", area: "7.5 acres", status: "Growing", daysLeft: 45, health: "Good" },
+    { id: 2, name: "Rice", area: "7.5 acres", status: "Growing", daysLeft: 85, health: "Excellent" },
+    { id: 3, name: "Maize", area: "7.5 acres", status: "Growing", daysLeft: 120, health: "Good" }
   ];
 
   const soilData = {
@@ -35,6 +79,12 @@ const MainCards = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+      {loading && (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        </div>
+      )}
+
       {/* Farm Overview Card - Top Left */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="p-3 sm:p-4 md:p-6 border-b">
@@ -44,15 +94,21 @@ const MainCards = () => {
           {/* Farm Stats */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
             <div className="text-center">
-              <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">7.5</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">
+                {farmerData?.settings?.farmSize || defaultData.totalAcres}
+              </div>
               <div className="text-xs text-gray-600">Total Acres</div>
             </div>
             <div className="text-center">
-              <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">3</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
+                {farmerData?.crops?.length || defaultData.activeCrops}
+              </div>
               <div className="text-xs text-gray-600">Active Crops</div>
             </div>
             <div className="text-center">
-              <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600">₹45k</div>
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600">
+                ₹{farmerData?.revenue ? `${(farmerData.revenue / 1000).toFixed(0)}k` : `${defaultData.revenue / 1000}k`}
+              </div>
               <div className="text-xs text-gray-600">Est. Revenue</div>
             </div>
           </div>

@@ -1,0 +1,21 @@
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function POST(_request: NextRequest) {
+  try {
+    const response = NextResponse.json({ message: 'Signed out successfully' })
+
+    // Clear the refresh token
+    response.cookies.set('refreshToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0, // expire immediately
+      path: '/'
+    })
+
+    return response
+  } catch (error) {
+    console.error('Sign out error:', error)
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 })
+  }
+}
