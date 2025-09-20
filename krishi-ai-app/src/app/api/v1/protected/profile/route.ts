@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, AuthUser } from "@/lib/auth";
 import { prisma } from '@/lib/prisma'
-import { Crop } from "@prisma/client";
+import { Crop } from "@/generated/prisma";
 
 export const GET = withAuth(async (request: NextRequest, user: AuthUser) => {
   try {
