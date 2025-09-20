@@ -1,6 +1,13 @@
-import { Farmer } from "@/app/api/v1/protected/profile/route";
+import { Prisma } from "@/generated/prisma";
 import { authUtils } from "@/lib/auth";
 import { useEffect, useState } from "react";
+
+type Farmer = Prisma.FarmerGetPayload<{
+  include: {
+    crops: true;
+    settings: true;
+  }
+}>;
 
 const MainCards = () => {
   const [farmerData, setFarmerData] = useState<Farmer | null>(null);
@@ -9,7 +16,7 @@ const MainCards = () => {
   useEffect(() => {
     const fetchFarmerData = async () => {
       try {
-          const token = authUtils.getToken(); // make sure you actually have it
+          const token = authUtils.getToken();
           const response = await fetch('/api/v1/protected/profile', {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -30,25 +37,18 @@ const MainCards = () => {
     fetchFarmerData();
   }, []);
 
-  const defaultData = {
-    totalAcres: 7.5,
-    activeCrops: 3,
-    revenue: 45000
-  };
-
-  const currentCrops = farmerData?.crops?.map((crop, index) => ({
-    id: crop.id || index + 1,
+  const currentCrops = farmerData?.crops?.map((crop, _index) => ({
+    id: crop.id,
     name: crop.name,
-    area: "7.5 acres", // Using entire farm size as requested
-    status: "Growing", // Default status as requested
-    daysLeft: Math.floor(Math.random() * 120) + 30, // Random days between 30-150
-    health: ["Good", "Excellent", "Fair"][Math.floor(Math.random() * 3)]
-  })) || [
-    { id: 1, name: "Wheat", area: "7.5 acres", status: "Growing", daysLeft: 45, health: "Good" },
-    { id: 2, name: "Rice", area: "7.5 acres", status: "Growing", daysLeft: 85, health: "Excellent" },
-    { id: 3, name: "Maize", area: "7.5 acres", status: "Growing", daysLeft: 120, health: "Good" }
-  ];
+    variety: crop.variety,
+    status: crop.status,
+    plantedDate: crop.plantedDate,
+    harvestDate: crop.harvestDate,
+    quantity: crop.quantity,
+    notes: crop.notes
+  })) || [];
 
+  // Keep weather-related mock data as requested
   const soilData = {
     nitrogen: 85,
     phosphorus: 78,
@@ -77,14 +77,24 @@ const MainCards = () => {
     { day: "Fri", temp: 27, condition: "⛅", humidity: 70, wind: "14 km/h" }
   ];
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (!farmerData) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-gray-500">No farmer data available</div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-      {loading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-        </div>
-      )}
-
       {/* Farm Overview Card - Top Left */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="p-3 sm:p-4 md:p-6 border-b">
@@ -95,19 +105,19 @@ const MainCards = () => {
           <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
             <div className="text-center">
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">
-                {farmerData?.settings?.farmSize || defaultData.totalAcres}
+                {farmerData.settings?.farmSize || 0}
               </div>
               <div className="text-xs text-gray-600">Total Acres</div>
             </div>
             <div className="text-center">
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
-                {farmerData?.crops?.length || defaultData.activeCrops}
+                {farmerData.crops?.length || 0}
               </div>
               <div className="text-xs text-gray-600">Active Crops</div>
             </div>
             <div className="text-center">
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600">
-                ₹{farmerData?.revenue ? `${(farmerData.revenue / 1000).toFixed(0)}k` : `${defaultData.revenue / 1000}k`}
+                ₹{farmerData.revenue ? `${(farmerData.revenue / 1000).toFixed(0)}k` : '0k'}
               </div>
               <div className="text-xs text-gray-600">Est. Revenue</div>
             </div>
@@ -186,27 +196,44 @@ const MainCards = () => {
           <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">Active Crops</h2>
         </div>
         <div className="p-3 sm:p-4 md:p-6">
-          <div className="space-y-2 sm:space-y-3">
-            {currentCrops.map((crop) => (
-              <div key={crop.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1 sm:gap-2 mb-1">
-                    <span className="font-medium text-gray-900 text-sm sm:text-base">{crop.name}</span>
-                    <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
-                      crop.health === 'Excellent' ? 'bg-green-100 text-green-800' :
-                      crop.health === 'Good' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {crop.health}
-                    </span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-600">
-                    {crop.area} • {crop.status} • {crop.daysLeft} days left
+          {currentCrops.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-sm">No crops planted yet</div>
+              <div className="text-xs mt-1">Add your first crop to get started</div>
+            </div>
+          ) : (
+            <div className="space-y-2 sm:space-y-3">
+              {currentCrops.map((crop) => (
+                <div key={crop.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1 sm:gap-2 mb-1">
+                      <span className="font-medium text-gray-900 text-sm sm:text-base">{crop.name}</span>
+                      {crop.variety && (
+                        <span className="text-xs text-gray-500">({crop.variety})</span>
+                      )}
+                      <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium ${
+                        crop.status === 'HARVESTED' ? 'bg-green-100 text-green-800' :
+                        crop.status === 'READY_FOR_HARVEST' ? 'bg-yellow-100 text-yellow-800' :
+                        crop.status === 'GROWING' ? 'bg-blue-100 text-blue-800' :
+                        crop.status === 'PLANTED' ? 'bg-purple-100 text-purple-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {crop.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      {crop.plantedDate && `Planted: ${new Date(crop.plantedDate).toLocaleDateString()}`}
+                      {crop.harvestDate && ` • Harvest: ${new Date(crop.harvestDate).toLocaleDateString()}`}
+                      {crop.quantity && ` • ${crop.quantity} kg`}
+                    </div>
+                    {crop.notes && (
+                      <div className="text-xs text-gray-500 mt-1">{crop.notes}</div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

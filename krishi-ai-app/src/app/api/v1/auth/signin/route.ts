@@ -1,27 +1,17 @@
-// app/api/v1/auth/signin/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
 
-// This would typically come from your database
-// Replace with your actual user model/database queries
-interface User {
-  id: string
-  email: string
-  password: string
-  firstName: string
-  lastName: string
-  createdAt: Date
-}
-
-// Mock user data - replace with actual database queries
-const users: User[] = []
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key'
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET
 
 export async function POST(request: NextRequest) {
+  if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+    throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be defined')
+  }
+
   try {
     const body = await request.json()
     const { email, password, rememberMe } = body
@@ -34,8 +24,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Find user by email (replace with database query)
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase())
+    // Find user by email
+    const user = await prisma.farmer.findUnique({
+      where: { 
+        email: email.toLowerCase() 
+      }
+    })
     
     if (!user) {
       return NextResponse.json(
@@ -54,12 +48,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Update lastSync
+    await prisma.farmer.update({
+      where: { id: user.id },
+      data: { lastSync: new Date() }
+    })
+
     // Generate JWT tokens
     const tokenPayload = {
       userId: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName
+      name: user.name
     }
 
     const accessToken = jwt.sign(
@@ -88,8 +87,7 @@ export async function POST(request: NextRequest) {
     const userResponse = {
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName
+      name: user.name
     }
 
     return NextResponse.json({

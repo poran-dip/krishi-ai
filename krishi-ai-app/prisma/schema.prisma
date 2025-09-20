@@ -6,17 +6,21 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Farmer {
   id        String   @id @default(cuid())
   email     String   @unique
+  password  String
   name      String
   phone     String?
   avatar    String?
+  revenue   Float?   // Add revenue field
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
+  lastSync  DateTime @default(now())
   crops     Crop[]
   settings  FarmerSettings?
   
@@ -66,11 +70,12 @@ model Crop {
   id          String   @id @default(cuid())
   name        String
   variety     String?
-  plantedDate DateTime
+  plantedDate DateTime?  // Make optional for future crops
   harvestDate DateTime?
   quantity    Float?   // in kg
   status      CropStatus @default(PLANTED)
   notes       String?
+  isFuture    Boolean @default(false)  // Add this field to distinguish future crops
   
   farmerId    String
   farmer      Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)

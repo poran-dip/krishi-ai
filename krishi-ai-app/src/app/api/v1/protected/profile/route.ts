@@ -1,40 +1,24 @@
 // app/api/v1/protected/profile/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth, AuthUser } from "@/lib/auth";
-
-export interface Farmer {
-  name: string;
-  email: string;
-  phone: string;
-  avatar?: string;
-  settings: {
-    languagePreference: string;
-    city: string;
-    state: string;
-    farmSize: number;
-    farmType: string;
-    organicCertified: boolean;
-    latitude?: number;
-    longitude?: number;
-  };
-  crops: {
-    id: string;
-    name: string;
-  }[];
-  futureCrops?: {
-    id: string;
-    name: string;
-  }[];
-  revenue?: number;
-  lastSync: string;
-}
-
-// in-memory db (replace with actual DB later)
-const farmerStore: Record<string, Farmer> = {};
+import { prisma } from '@/lib/prisma'
+import { Crop } from "@prisma/client";
 
 export const GET = withAuth(async (request: NextRequest, user: AuthUser) => {
   try {
-    const farmer = farmerStore[user.userId];
+    const farmer = await prisma.farmer.findUnique({
+      where: { id: user.userId },
+      include: {
+        settings: true,
+        crops: {
+          select: {
+            id: true,
+            name: true,
+            isFuture: true
+          }
+        }
+      }
+    });
 
     if (!farmer) {
       return NextResponse.json(
@@ -43,9 +27,40 @@ export const GET = withAuth(async (request: NextRequest, user: AuthUser) => {
       );
     }
 
+    // Separate current and future crops
+    const currentCrops = farmer.crops.filter(crop => !crop.isFuture);
+    const futureCrops = farmer.crops.filter(crop => crop.isFuture);
+
+    const profileData = {
+      name: farmer.name,
+      email: farmer.email,
+      phone: farmer.phone,
+      avatar: farmer.avatar,
+      revenue: farmer.revenue,
+      settings: farmer.settings ? {
+        languagePreference: farmer.settings.languagePreference,
+        city: farmer.settings.city,
+        state: farmer.settings.state,
+        farmSize: farmer.settings.farmSize,
+        farmType: farmer.settings.farmType,
+        organicCertified: farmer.settings.organicCertified,
+        latitude: farmer.settings.latitude,
+        longitude: farmer.settings.longitude,
+      } : null,
+      crops: currentCrops.map(crop => ({
+        id: crop.id,
+        name: crop.name
+      })),
+      futureCrops: futureCrops.map(crop => ({
+        id: crop.id,
+        name: crop.name
+      })),
+      lastSync: farmer.lastSync.toISOString(),
+    };
+
     return NextResponse.json({
       message: "Profile data retrieved successfully",
-      data: farmer,
+      data: profileData,
     });
   } catch (error) {
     console.error("Profile error:", error);
@@ -59,30 +74,69 @@ export const GET = withAuth(async (request: NextRequest, user: AuthUser) => {
 export const PUT = withAuth(async (request: NextRequest, user: AuthUser) => {
   try {
     const body = await request.json();
-    const existingFarmer = farmerStore[user.userId];
 
-    const updatedFarmer: Farmer = {
-      ...existingFarmer,
-      ...body,
-      settings: {
-        ...existingFarmer?.settings,
-        ...body.settings,
-      },
-      crops: body.crops ?? existingFarmer?.crops ?? [],
-      futureCrops: body.futureCrops ?? existingFarmer?.futureCrops ?? [],
-      revenue: body.revenue ?? existingFarmer?.revenue ?? 0,
-      lastSync: new Date().toISOString(),
-      // if new user, fallback with auth data
-      name: body.name ?? `${user.firstName} ${user.lastName}`,
-      email: user.email,
-      phone: body.phone ?? "+91 9876543210",
-    };
+    // Update farmer and settings in a transaction
+    const updatedFarmer = await prisma.$transaction(async (tx) => {
+      // Update farmer basic info
+      const farmer = await tx.farmer.update({
+        where: { id: user.userId },
+        data: {
+          name: body.name,
+          phone: body.phone,
+          avatar: body.avatar,
+          revenue: body.revenue,
+          lastSync: new Date()
+        }
+      });
 
-    farmerStore[user.userId] = updatedFarmer;
+      // Update or create settings
+      if (body.settings) {
+        await tx.farmerSettings.upsert({
+          where: { farmerId: user.userId },
+          create: {
+            farmerId: user.userId,
+            ...body.settings
+          },
+          update: body.settings
+        });
+      }
+
+      // Update crops if provided
+      if (body.crops || body.futureCrops) {
+        // Delete existing crops
+        await tx.crop.deleteMany({
+          where: { farmerId: user.userId }
+        });
+
+        // Add current crops
+        if (body.crops?.length > 0) {
+          await tx.crop.createMany({
+            data: body.crops.map((crop: Crop) => ({
+              farmerId: user.userId,
+              name: crop.name,
+              isFuture: false
+            }))
+          });
+        }
+
+        // Add future crops
+        if (body.futureCrops?.length > 0) {
+          await tx.crop.createMany({
+            data: body.futureCrops.map((crop: Crop) => ({
+              farmerId: user.userId,
+              name: crop.name,
+              isFuture: true
+            }))
+          });
+        }
+      }
+
+      return farmer;
+    });
 
     return NextResponse.json({
       message: "Profile updated successfully",
-      ...updatedFarmer,
+      data: updatedFarmer
     });
   } catch (error) {
     console.error("Profile update error:", error);

@@ -1,4 +1,11 @@
-import type { Farmer } from "@/app/api/v1/protected/profile/route"
+import { Prisma } from "@/generated/prisma";
+
+type Farmer = Prisma.FarmerGetPayload<{
+  include: {
+    crops: true;
+    settings: true;
+  }
+}>;
 
 // checks if a farmer profile has the essentials filled
 export function isProfileComplete(profile: Farmer | null | undefined): boolean {

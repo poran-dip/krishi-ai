@@ -1,26 +1,11 @@
-// app/api/v1/auth/signup/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
-import { v4 as uuidv4 } from 'uuid'
+import { prisma } from '@/lib/prisma'
 
-// This would typically come from your database
-// Replace with your actual user model/database queries
-interface User {
-  id: string
-  email: string
-  password: string
-  firstName: string
-  lastName: string
-  createdAt: Date
-}
-
-// Mock user data - replace with actual database queries
-const users: User[] = []
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key'
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret'
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super-refresh'
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,8 +36,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user already exists (replace with database query)
-    const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase())
+    // Check if user already exists
+    const existingUser = await prisma.farmer.findUnique({
+      where: { 
+        email: email.toLowerCase() 
+      }
+    })
     
     if (existingUser) {
       return NextResponse.json(
@@ -65,24 +54,21 @@ export async function POST(request: NextRequest) {
     const saltRounds = 12
     const hashedPassword = await bcrypt.hash(password, saltRounds)
 
-    // Create new user (replace with database insert)
-    const newUser: User = {
-      id: uuidv4(),
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      createdAt: new Date()
-    }
-
-    users.push(newUser)
+    // Create new user
+    const newUser = await prisma.farmer.create({
+      data: {
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        name: `${firstName.trim()} ${lastName.trim()}`,
+        lastSync: new Date()
+      }
+    })
 
     // Generate JWT tokens
     const tokenPayload = {
       userId: newUser.id,
       email: newUser.email,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName
+      name: newUser.name
     }
 
     const accessToken = jwt.sign(
@@ -111,8 +97,7 @@ export async function POST(request: NextRequest) {
     const userResponse = {
       id: newUser.id,
       email: newUser.email,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName
+      name: newUser.name
     }
 
     return NextResponse.json({
@@ -123,6 +108,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Sign up error:', error)
+    
+    // Handle Prisma-specific errors
+    if (error instanceof Error && error.message.includes('Unique constraint')) {
+      return NextResponse.json(
+        { message: 'User with this email already exists' },
+        { status: 409 }
+      )
+    }
+    
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }
