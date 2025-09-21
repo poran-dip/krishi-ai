@@ -166,7 +166,9 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
         console.error('Sign out failed:', await res.text());
         return;
       }
-      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('token')
+      localStorage.removeItem('token')
+      
       // optional: redirect or update app state
       window.location.href = '/'; // redirect to homepage after logout
     } catch (err) {

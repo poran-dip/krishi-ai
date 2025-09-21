@@ -99,7 +99,7 @@ export class SoilDataService {
     // For P and K, we'll estimate based on CEC and organic matter
     const cec = cecLayer?.depths[0]?.values?.["Q0.5"];
     const { phosphorus, potassium } = cec 
-      ? this.estimatePhosphorusAndPotassium(cec, typeof organicMatter === 'number' ? organicMatter : 0)
+      ? this.estimatePhosphorusAndPotassium(cec, typeof nitrogen === 'number' ? nitrogen : 0)
       : { phosphorus: "-", potassium: "-" };
     
     return {
@@ -128,19 +128,32 @@ export class SoilDataService {
     return (value / 100) * 1.724;
   }
   
-  private static estimatePhosphorusAndPotassium(cec: number, organicMatter: number): { phosphorus: number; potassium: number } {
+  private static estimatePhosphorusAndPotassium(cec: number, nitrogen: number): { phosphorus: number; potassium: number } {
     // These are rough estimates based on soil science relationships
     // In practice, you'd need actual P and K testing data
     
     // Higher CEC generally indicates better nutrient retention
     // Higher organic matter usually correlates with better P availability
-    
-    const basePhos = Math.min((cec / 200) * 40 + (organicMatter * 5), 100);
-    const basePot = Math.min((cec / 150) * 35 + (organicMatter * 4), 100);
-    
+    // base N:P:K ratio
+    let phosphorus = nitrogen * (2 / 4);
+    let potassium = nitrogen * (1 / 4);
+
+    if (cec !== undefined) {
+      // tweak values based on CEC
+      // assume CEC ranges ~5–50 cmol/kg (just as a rough guide)
+      const minCEC = 5;   // realistic lower bound
+      const maxCEC = 50;  // realistic upper bound
+      const clampedCEC = Math.max(minCEC, Math.min(maxCEC, cec)); // clamp to 5–50
+
+      const cecFactor = (clampedCEC - minCEC) / (maxCEC - minCEC); // normalize 0–1
+      const boost = 0.02 + cecFactor * 0.18; // gives 0.02–0.2
+      phosphorus += boost;
+      potassium += boost / 2; // maybe less impact on K
+    }
+
     return {
-      phosphorus: Math.max(basePhos, 10), // Minimum 10%
-      potassium: Math.max(basePot, 15)    // Minimum 15%
+      phosphorus: Math.round(phosphorus * 1000) / 1000,
+      potassium: Math.round(potassium * 1000) / 1000
     };
   }
   

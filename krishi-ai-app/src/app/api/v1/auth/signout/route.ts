@@ -9,7 +9,7 @@ export async function POST() {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 0, // expire immediately
+      expires: new Date(0),
       path: '/'
     })
 

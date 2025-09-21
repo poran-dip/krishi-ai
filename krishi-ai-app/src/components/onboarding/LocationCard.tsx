@@ -23,6 +23,8 @@ const LocationCard = ({
   const [manualEntry, setManualEntry] = useState(false)
   const [city, setCity] = useState(defaultValues?.city || '')
   const [state, setState] = useState(defaultValues?.state || '')
+  const [latitude, setLatitude] = useState<number | ''>(defaultValues?.latitude ?? '')
+  const [longitude, setLongitude] = useState<number | ''>(defaultValues?.longitude ?? '')
   const [hasLocation, setHasLocation] = useState(false)
 
   const indianStates = [
@@ -105,8 +107,8 @@ const LocationCard = ({
     }
     
     const locationData = {
-      latitude: null,
-      longitude: null,
+      latitude: latitude === '' ? null : latitude,
+      longitude: longitude === '' ? null : longitude,
       city,
       state
     }
@@ -119,6 +121,8 @@ const LocationCard = ({
     setManualEntry(false)
     setHasLocation(false)
     setCity('')
+    setLatitude('')
+    setLongitude('')
     setState('')
     setError('')
   }
@@ -148,6 +152,36 @@ const LocationCard = ({
             1
           </div>
           <h2 className="text-lg font-semibold">Your Location</h2>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Latitude (optional)
+          </label>
+          <input
+            type="number"
+            placeholder="Enter latitude"
+            value={latitude}
+            onChange={(e) => setLatitude(e.target.value === '' ? '' : parseFloat(e.target.value))}
+            min={-90}
+            max={90}
+            className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Longitude (optional)
+          </label>
+          <input
+            type="number"
+            placeholder="Enter longitude"
+            value={longitude}
+            onChange={(e) => setLongitude(e.target.value === '' ? '' : parseFloat(e.target.value))}
+            min={-180}
+            max={180}
+            className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
         </div>
         
         <div>

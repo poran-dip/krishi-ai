@@ -75,6 +75,7 @@ const AISuggestions = () => {
           <div className="grid grid-cols-3 sm:flex sm:flex-row items-center gap-2 sm:gap-3 w-full md:w-auto">
             {/* Field dropdown */}
             <select
+              className="col-span-1 border border-green-200 rounded-lg p-2 text-sm sm:text-base text-green-900 bg-white w-full md:w-auto"
               value={criteria}
               onChange={(e) => {
                 setCriteria(e.target.value)
