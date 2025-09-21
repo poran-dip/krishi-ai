@@ -10,7 +10,7 @@ type Farmer = Prisma.FarmerGetPayload<{
 // checks if a farmer profile has the essentials filled
 export function isProfileComplete(profile: Farmer | null | undefined): boolean {
   if (!profile) {
-    console.debug('Profile incomplete: No profile data');
+    console.log('Profile incomplete: No profile data');
     return false;
   }
 
@@ -18,50 +18,50 @@ export function isProfileComplete(profile: Farmer | null | undefined): boolean {
   const { name, email, settings } = profile;
   
   if (!name?.trim()) {
-    console.debug('Profile incomplete: Missing name');
+    console.log('Profile incomplete: Missing name');
     return false;
   }
   
   if (!email?.trim()) {
-    console.debug('Profile incomplete: Missing email');
+    console.log('Profile incomplete: Missing email');
     return false;
   }
   
   if (!settings) {
-    console.debug('Profile incomplete: Missing settings object');
+    console.log('Profile incomplete: Missing settings object');
     return false;
   }
 
   // ✅ location checks
   if (!settings.city?.trim() || !settings.state?.trim()) {
-    console.debug('Profile incomplete: Missing city or state');
+    console.log('Profile incomplete: Missing city or state');
     return false;
   }
 
   // ✅ farm details checks
   if (!settings.farmSize || settings.farmSize <= 0) {
-    console.debug('Profile incomplete: Invalid farm size');
+    console.log('Profile incomplete: Invalid farm size');
     return false;
   }
   
   if (!settings.farmType?.trim()) {
-    console.debug('Profile incomplete: Missing farm type');
+    console.log('Profile incomplete: Missing farm type');
     return false;
   }
 
   // ✅ organic certification must be explicitly set (boolean)
   if (typeof settings.organicCertified !== "boolean") {
-    console.debug('Profile incomplete: Organic certification not set');
+    console.log('Profile incomplete: Organic certification not set');
     return false;
   }
 
   // ✅ optional: check if user has at least one crop
   if (!profile.crops || profile.crops.length === 0) {
-    console.debug('Profile incomplete: No crops specified');
+    console.log('Profile incomplete: No crops specified');
     return false;
   }
 
-  console.debug('Profile complete: All required fields present');
+  console.log('Profile complete: All required fields present');
   return true;
 }
 

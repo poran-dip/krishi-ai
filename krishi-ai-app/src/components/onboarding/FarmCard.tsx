@@ -20,18 +20,11 @@ const FarmCard = ({
   const [farmType, setFarmType] = useState(defaultValues?.farmType || '')
   const [organic, setOrganic] = useState(defaultValues?.organicCertified || false)
 
-  const farmTypes = [
-    'Mixed Farming',
-    'Vegetables',
-    'Fruits & Orchards',
-    'Grains & Cereals',
-    'Pulses & Legumes',
-    'Cash Crops',
-    'Dairy Farming',
-    'Poultry',
-    'Livestock',
-    'Floriculture',
-    'Other'
+  const farmTypeOptions = [
+    { value: 'MIXED', label: 'Mixed Farming' },
+    { value: 'CROP_FARMING', label: 'Crop Farming' }, 
+    { value: 'ORGANIC', label: 'Organic Farming' },
+    { value: 'GREENHOUSE', label: 'Greenhouse Farming' }
   ]
 
   const handleFarmSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,8 +96,10 @@ const FarmCard = ({
           className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-green-500 focus:border-green-500"
         >
           <option value="">Select farm type</option>
-          {farmTypes.map(type => (
-            <option key={type} value={type}>{type}</option>
+          {farmTypeOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
           ))}
         </select>
       </div>

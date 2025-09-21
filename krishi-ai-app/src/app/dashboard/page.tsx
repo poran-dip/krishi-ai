@@ -10,8 +10,7 @@ import { isProfileComplete } from "@/lib/utils"
 interface User {
   id: string
   email: string
-  firstName: string
-  lastName: string
+  name: string
 }
 
 const DashboardPage = () => {
@@ -120,6 +119,8 @@ const DashboardPage = () => {
         const farmer = await profileRes.json();
         console.log('Profile refetched after onboarding:', farmer);
         setProfileComplete(isProfileComplete(farmer.data));
+
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       } else {
         console.log('Profile fetch failed after onboarding:', profileRes.status);
         setProfileComplete(false);
@@ -149,9 +150,10 @@ const DashboardPage = () => {
 
   return (
     <Dashboard 
-      name={user.firstName} 
-      fullName={`${user.firstName} ${user.lastName}`}
-      email={user.email}
+      user={{
+        name: user.name,
+        email: user.email
+      }}
       onLogout={handleLogout}
     />
   )

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 // import { prisma } from "@/lib/prisma";
 // import { verifyAuth } from "@/lib/auth";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const farmerProfile = {
     // Farmer Model Fields
     id: "cm1x8y9z0a1b2c3d4e5f6g7h8",

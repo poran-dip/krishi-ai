@@ -14,7 +14,8 @@ export const GET = withAuth(async (request: NextRequest, user: AuthUser) => {
           select: {
             id: true,
             name: true,
-            isFuture: true
+            isFuture: true,
+            status: true
           }
         }
       }
@@ -49,11 +50,13 @@ export const GET = withAuth(async (request: NextRequest, user: AuthUser) => {
       } : null,
       crops: currentCrops.map(crop => ({
         id: crop.id,
-        name: crop.name
+        name: crop.name,
+        status: crop.status
       })),
       futureCrops: futureCrops.map(crop => ({
         id: crop.id,
-        name: crop.name
+        name: crop.name,
+        status: crop.status
       })),
       lastSync: farmer.lastSync.toISOString(),
     };
@@ -77,19 +80,21 @@ export const PUT = withAuth(async (request: NextRequest, user: AuthUser) => {
 
     // Update farmer and settings in a transaction
     const updatedFarmer = await prisma.$transaction(async (tx) => {
+      // Build update data with only provided fields
+      const farmerUpdateData = {
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.phone !== undefined && { phone: body.phone }),
+        ...(body.avatar !== undefined && { avatar: body.avatar }),
+        ...(body.revenue !== undefined && { revenue: body.revenue }),
+        lastSync: new Date()
+      };
+
       // Update farmer basic info
       const farmer = await tx.farmer.update({
         where: { id: user.userId },
-        data: {
-          name: body.name,
-          phone: body.phone,
-          avatar: body.avatar,
-          revenue: body.revenue,
-          lastSync: new Date()
-        }
+        data: farmerUpdateData
       });
 
-      // Update or create settings
       if (body.settings) {
         await tx.farmerSettings.upsert({
           where: { farmerId: user.userId },
@@ -101,31 +106,29 @@ export const PUT = withAuth(async (request: NextRequest, user: AuthUser) => {
         });
       }
 
-      // Update crops if provided
       if (body.crops || body.futureCrops) {
-        // Delete existing crops
         await tx.crop.deleteMany({
           where: { farmerId: user.userId }
         });
 
-        // Add current crops
         if (body.crops?.length > 0) {
           await tx.crop.createMany({
             data: body.crops.map((crop: Crop) => ({
               farmerId: user.userId,
               name: crop.name,
-              isFuture: false
+              isFuture: false,
+              status: 'GROWING'
             }))
           });
         }
 
-        // Add future crops
         if (body.futureCrops?.length > 0) {
           await tx.crop.createMany({
             data: body.futureCrops.map((crop: Crop) => ({
               farmerId: user.userId,
               name: crop.name,
-              isFuture: true
+              isFuture: true,
+              status: 'PLANTED'
             }))
           });
         }

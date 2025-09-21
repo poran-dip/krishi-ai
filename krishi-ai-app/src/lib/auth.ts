@@ -7,15 +7,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key'
 export interface AuthUser {
   userId: string
   email: string
-  firstName: string
-  lastName: string
+  name: string
 }
 
 export function verifyToken(token: string): AuthUser | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUser
     return decoded
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -30,7 +29,7 @@ export function getAuthUser(request: NextRequest): AuthUser | null {
 
     const token = authHeader.substring(7) // Remove 'Bearer ' prefix
     return verifyToken(token)
-  } catch (error) {
+  } catch {
     return null
   }
 }

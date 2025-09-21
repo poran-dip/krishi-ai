@@ -71,7 +71,7 @@ const LocationCard = ({
           if (onDataChange) {
             onDataChange(locationData)
           }
-        } catch (err) {
+        } catch {
           setLoading(false)
           // If geocoding fails, still use coordinates
           const locationData = {
@@ -90,7 +90,7 @@ const LocationCard = ({
           }
         }
       },
-      (_err) => {
+      () => {
         setLoading(false)
         setError('Unable to get location. Please enter manually.')
         setManualEntry(true)

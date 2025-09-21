@@ -14,10 +14,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Update lastSync in database
-    const updatedUser = await prisma.farmer.update({
+    // Just verify the user exists without updating
+    const existingUser = await prisma.farmer.findUnique({
       where: { id: user.userId },
-      data: { lastSync: new Date() },
       select: {
         id: true,
         email: true,
@@ -25,27 +24,20 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Return user data from database
-    return NextResponse.json({
-      message: 'Token is valid',
-      user: {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        name: updatedUser.name
-      }
-    })
-
-  } catch (error) {
-    console.error('Token verification error:', error)
-    
-    // Handle case where user doesn't exist in database
-    if (error instanceof Error && error.message.includes('Record to update not found')) {
+    if (!existingUser) {
       return NextResponse.json(
         { message: 'Invalid or expired token' },
         { status: 401 }
       )
     }
-    
+
+    return NextResponse.json({
+      message: 'Token is valid',
+      user: existingUser
+    })
+
+  } catch (error) {
+    console.error('Token verification error:', error)
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }

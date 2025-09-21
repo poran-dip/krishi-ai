@@ -1,7 +1,6 @@
 import { useState, useRef } from "react"
 
 interface Crop {
-  id: string;
   name: string;
 }
 
@@ -56,7 +55,6 @@ const CropAndRevenueCard = ({
     if (newCropNames.length === 0) return
 
     const newCrops: Crop[] = newCropNames.map(name => ({
-      id: Math.random().toString(36).substr(2, 9),
       name: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
     }))
 
@@ -140,7 +138,6 @@ const CropAndRevenueCard = ({
     const existingNames = targetList.map((crop: Crop) => crop.name.toLowerCase())
     if (!existingNames.includes(cropName.toLowerCase())) {
       const newCrop: Crop = {
-        id: Math.random().toString(36).substr(2, 9),
         name: cropName
       }
       setTargetList([...targetList, newCrop])
@@ -214,7 +211,7 @@ const CropAndRevenueCard = ({
         <div className="flex flex-wrap gap-2 mt-2">
           {crops.map((crop: Crop, i: number) => (
             <span 
-              key={crop.id} 
+              key={crop.name} 
               className="bg-green-100 px-2 py-1 rounded flex items-center gap-1 text-sm"
             >
               {crop.name}
@@ -267,7 +264,7 @@ const CropAndRevenueCard = ({
         <div className="flex flex-wrap gap-2 mt-2">
           {futureCrops.map((crop: Crop, i: number) => (
             <span 
-              key={crop.id} 
+              key={crop.name} 
               className="bg-blue-100 px-2 py-1 rounded flex items-center gap-1 text-sm"
             >
               {crop.name}

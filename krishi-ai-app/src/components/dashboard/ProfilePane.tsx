@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { 
   X, 
   Settings, 
@@ -45,7 +46,7 @@ interface Farmer {
   lastSync: string
 }
 
-const ProfilePane = ({ userName, userEmail, onClose, onLogout }: ProfilePaneProps) => {
+const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
   const [farmerData, setFarmerData] = useState<Farmer | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("en");
   const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +62,13 @@ const ProfilePane = ({ userName, userEmail, onClose, onLogout }: ProfilePaneProp
     { code: 'te', name: 'తెలుగు (Telugu)' },
     { code: 'kn', name: 'ಕನ್ನಡ (Kannada)' }
   ];
+
+  const farmTypeMap: Record<string, string> = {
+    CROP_FARMING: "Crop Farming",
+    MIXED: "Mixed Farm",
+    ORGANIC: "Organic Farm",
+    GREENHOUSE: "Greenhouse",
+  };
 
   useEffect(() => {
     async function fetchFarmer() {
@@ -249,9 +257,11 @@ const ProfilePane = ({ userName, userEmail, onClose, onLogout }: ProfilePaneProp
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-green-600">
               {farmerData.avatar ? (
-                <img 
+                <Image 
                   src={farmerData.avatar} 
                   alt={farmerData.name} 
+                  width={64}
+                  height={64}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -297,7 +307,7 @@ const ProfilePane = ({ userName, userEmail, onClose, onLogout }: ProfilePaneProp
               <MapPin size={16} className="text-blue-600" />
               <div>
                 <p className="text-gray-500">Farm Type</p>
-                <p className="font-medium">{farmerData.settings.farmType}</p>
+                <p className="font-medium">{farmTypeMap[farmerData.settings.farmType]}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">

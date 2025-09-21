@@ -37,7 +37,7 @@ const MainCards = () => {
     fetchFarmerData();
   }, []);
 
-  const currentCrops = farmerData?.crops?.map((crop, _index) => ({
+  const currentCrops = farmerData?.crops?.map((crop) => ({
     id: crop.id,
     name: crop.name,
     variety: crop.variety,
@@ -77,6 +77,36 @@ const MainCards = () => {
     { day: "Fri", temp: 27, condition: "⛅", humidity: 70, wind: "14 km/h" }
   ];
 
+  const getStatusDisplay = (status: string | undefined) => {
+    if (!status) return 'Unknown';
+    
+    const statusMap: Record<string, string> = {
+      'PLANTED': 'Planted',
+      'GROWING': 'Growing', 
+      'READY_FOR_HARVEST': 'Ready for Harvest',
+      'HARVESTED': 'Harvested',
+      'FAILED': 'Failed'
+    };
+    
+    return statusMap[status] || status;
+  };
+
+  function formatRevenue(amount: number): string {
+    if (amount >= 1_00_00_000) { 
+      // 1 crore and above
+      return (amount / 1_00_00_000).toFixed(1).replace(/\.0$/, '') + "C"
+    } else if (amount >= 1_00_000) {
+      // 1 lakh and above
+      return (amount / 1_00_000).toFixed(1).replace(/\.0$/, '') + "L"
+    } else if (amount >= 1_000) {
+      // 1k and above
+      return (amount / 1_000).toFixed(1).replace(/\.0$/, '') + "k"
+    } else {
+      return amount.toString()
+    }
+  }
+
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -92,7 +122,7 @@ const MainCards = () => {
       </div>
     );
   }
-
+  
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
       {/* Farm Overview Card - Top Left */}
@@ -117,7 +147,7 @@ const MainCards = () => {
             </div>
             <div className="text-center">
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600">
-                ₹{farmerData.revenue ? `${(farmerData.revenue / 1000).toFixed(0)}k` : '0k'}
+                ₹{farmerData.revenue ? formatRevenue(farmerData.revenue) : '0'}
               </div>
               <div className="text-xs text-gray-600">Est. Revenue</div>
             </div>
@@ -218,7 +248,7 @@ const MainCards = () => {
                         crop.status === 'PLANTED' ? 'bg-purple-100 text-purple-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {crop.status.replace('_', ' ')}
+                        {getStatusDisplay(crop.status)}
                       </span>
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600">

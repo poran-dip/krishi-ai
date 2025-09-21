@@ -6,7 +6,6 @@ import { authUtils } from "@/lib/auth"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Crop {
-  id: string
   name: string
 }
 
@@ -33,8 +32,7 @@ interface OnboardingProps {
   user: {
     id: string
     email: string
-    firstName: string
-    lastName: string
+    name: string
   }
   onComplete: () => void
 }
@@ -90,7 +88,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
     const allData = { ...data, ...finalData }
     
     const payload = {
-      name: `${user.firstName} ${user.lastName}`,
+      name: user.name,
       email: user.email,
       phone: allData.phone || "+91 9876543210",
       settings: {
@@ -148,7 +146,7 @@ export default function Onboarding({ user, onComplete }: OnboardingProps) {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to KrishiAI, {user.firstName}!
+            Welcome to KrishiAI, {user.name.split(' ')[0]}!
           </h1>
           <p className="text-gray-600">
             Let&apos;s set up your farming profile to get personalized insights
