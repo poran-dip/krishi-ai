@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     let refreshPayload
     try {
       refreshPayload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { userId: string }
-    } catch (error) {
+    } catch {
       // Refresh token is invalid, clear it
       const response = NextResponse.json(
         { message: 'Invalid refresh token' },

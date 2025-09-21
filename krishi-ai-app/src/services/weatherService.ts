@@ -1,4 +1,42 @@
-// services/weatherService.ts
+interface OpenWeatherMapResponse {
+  main: {
+    temp: number;
+    humidity: number;
+  };
+  weather: Array<{
+    main: string;
+    description: string;
+    icon: string;
+  }>;
+  clouds: {
+    all: number;
+  };
+  wind: {
+    speed: number;
+  };
+  rain?: {
+    '1h': number;
+  };
+}
+
+interface ForecastResponse {
+  list: Array<{
+    dt: number;
+    main: {
+      temp: number;
+      humidity: number;
+    };
+    weather: Array<{
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    wind: {
+      speed: number;
+    };
+  }>;
+}
+
 export interface WeatherData {
   temp: number | string;
   humidity: number | string;
@@ -82,8 +120,8 @@ class WeatherService {
       }
 
       const [weather, forecast] = await Promise.all([
-        weatherRes.json(),
-        forecastRes.json()
+        weatherRes.json() as Promise<OpenWeatherMapResponse>,
+        forecastRes.json() as Promise<ForecastResponse>
       ]);
 
       const current: WeatherData = {
@@ -97,11 +135,11 @@ class WeatherService {
       };
 
       const weeklyForecast: ForecastDay[] = forecast.list
-        .filter((_: any, index: number) => index % 8 === 0)
+        .filter((_, index: number) => index % 8 === 0)
         .slice(0, 5)
-        .map((item: any, index: number) => ({
+        .map((item, index: number) => ({
           day: index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : 
-               new Date(Date.now() + index * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'short' }),
+              new Date(Date.now() + index * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'short' }),
           temp: Math.round(item.main.temp),
           condition: this.getWeatherEmoji(item.weather[0].icon),
           humidity: item.main.humidity,

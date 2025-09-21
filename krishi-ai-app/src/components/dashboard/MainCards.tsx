@@ -320,6 +320,36 @@ const MainCards = () => {
             <div className="flex justify-center items-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
+          ) : weatherError ? (
+            <div className="animate-pulse">
+              {/* Wireframe Current Weather */}
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="h-10 sm:h-12 md:h-16 bg-gray-200 rounded-lg mb-2 mx-auto w-24"></div>
+                <div className="h-4 bg-gray-200 rounded mx-auto w-32 mb-3"></div>
+              </div>
+              
+              {/* Wireframe Weather Details */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
+                <div className="text-center p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <div className="h-6 sm:h-8 bg-gray-200 rounded mx-auto w-12 mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded mx-auto w-16"></div>
+                </div>
+                <div className="text-center p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <div className="h-6 sm:h-8 bg-gray-200 rounded mx-auto w-12 mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded mx-auto w-20"></div>
+                </div>
+              </div>
+
+              {/* Wireframe Alert */}
+              <div>
+                <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                <div className="p-2 sm:p-3 rounded-lg border-l-4 bg-red-50 border-red-400">
+                  <div className="text-xs sm:text-sm font-medium text-red-600">
+                    Unable to load weather data
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : weatherData ? (
             <>
               {/* Current Weather */}
@@ -415,25 +445,43 @@ const MainCards = () => {
           <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">5-Day Forecast</h2>
         </div>
         <div className="p-3 sm:p-4 md:p-6">
-          <div className="space-y-1 sm:space-y-2">
-            {weeklyForecast.map((day, index) => (
-              <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs sm:text-sm text-gray-600 w-16">{day.day}</span>
-                  <span className="text-xs sm:text-sm">{day.condition}</span>
+          {weatherError ? (
+            <div className="animate-pulse space-y-1 sm:space-y-2">
+              {[...Array(5)].map((_, index) => (
+                <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                    <div className="h-4 bg-gray-200 rounded w-8"></div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 bg-gray-200 rounded w-8"></div>
+                    <div className="h-4 bg-gray-200 rounded w-8"></div>
+                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs sm:text-sm">
-                  <span className="font-medium">
-                    {day.temp}{day.temp !== "-" ? "°C" : ""}
-                  </span>
-                  <span className="text-gray-500">
-                    {day.humidity}{day.humidity !== "-" ? "%" : ""}
-                  </span>
-                  <span className="text-gray-500">{day.wind}</span>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1 sm:space-y-2">
+              {weeklyForecast.map((day, index) => (
+                <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm text-gray-600 w-16">{day.day}</span>
+                    <span className="text-xs sm:text-sm">{day.condition}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs sm:text-sm">
+                    <span className="font-medium">
+                      {day.temp}{day.temp !== "-" ? "°C" : ""}
+                    </span>
+                    <span className="text-gray-500">
+                      {day.humidity}{day.humidity !== "-" ? "%" : ""}
+                    </span>
+                    <span className="text-gray-500">{day.wind}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

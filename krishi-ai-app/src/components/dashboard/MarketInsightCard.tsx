@@ -1,14 +1,31 @@
 import { useState } from "react";
 import { Lightbulb, X } from "lucide-react";
+import { MarketPrice } from "@/services/marketPriceService";
 
-const MarketInsightCard = () => {
+interface MarketInsightCardProps {
+  marketPrices: MarketPrice[];
+}
+
+const MarketInsightCard = ({ marketPrices }: MarketInsightCardProps) => {
   const [visible, setVisible] = useState(true);
+  if (!visible || marketPrices.length === 0) return null;
 
-  if (!visible) return null; // hide card if not visible
+  // pick biggest absolute change
+  let biggestChange: MarketPrice = marketPrices[0];
+  let biggestValue = Math.abs(parseFloat(biggestChange.change.replace('%', '').replace('+', '')));
+
+  marketPrices.forEach(item => {
+    const changeVal = Math.abs(parseFloat(item.change.replace('%', '').replace('+', '').replace('-', '')));
+    if (changeVal > biggestValue) {
+      biggestChange = item;
+      biggestValue = changeVal;
+    }
+  });
+
+  const isUp = biggestChange.change.startsWith('+');
 
   return (
     <div className="relative mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-      {/* Close button */}
       <button
         onClick={() => setVisible(false)}
         className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"
@@ -25,8 +42,7 @@ const MarketInsightCard = () => {
             Market Insight
           </h4>
           <p className="text-xs sm:text-sm text-blue-800 leading-relaxed">
-            Maize prices are surging (+8%) due to high export demand. Consider harvesting early if crops are ready. 
-            Rice prices dipped slightly but expected to recover next week.
+            {biggestChange.crop} prices {isUp ? 'are surging' : 'dipped'} ({biggestChange.change}) at {biggestChange.location}.
           </p>
         </div>
       </div>

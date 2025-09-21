@@ -1,7 +1,33 @@
-import MarketInsightCard from "./MarketInsightCard"
+import { useEffect, useState } from "react";
+import { authUtils } from "@/lib/auth";
+import { Prisma } from "@/generated/prisma";
+import MarketInsightCard from "./MarketInsightCard";
+
+// Interfaces
+interface MarketPrice {
+  crop: string;
+  price: number;
+  change: string;
+  changeValue: number;
+  lastWeek: number;
+  demand: 'Low' | 'Medium' | 'High' | 'Very High';
+  quality: string;
+  location: string;
+  unit?: string;
+  lastUpdated?: string;
+}
+
+type Farmer = Prisma.FarmerGetPayload<{
+  include: {
+    crops: true;
+    settings: true;
+  }
+}>;
 
 const MarketPrices = () => {
-    const marketPrices = [
+  // State variables
+  const [farmerData, setFarmerData] = useState<Farmer | null>(null);
+  const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([
     { 
       crop: "Wheat", 
       price: 2150, 
@@ -32,7 +58,103 @@ const MarketPrices = () => {
       quality: "Premium",
       location: "Mumbai Mandi"
     }
-  ];
+  ]);
+
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch farmer data
+  useEffect(() => {
+    const fetchFarmerData = async () => {
+      try {
+        const token = authUtils.getToken();
+        const response = await fetch('/api/v1/protected/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setFarmerData(result.data);
+        }
+      } catch (error) {
+        console.error('Error fetching farmer data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFarmerData();
+  }, []);
+
+  // Fetch market prices
+  useEffect(() => {
+    const fetchMarketPrices = async () => {
+      if (!farmerData?.settings) return;
+      
+      setMarketLoading(true);
+      setMarketError(null);
+      
+      try {
+        const token = authUtils.getToken();
+        
+        // Build query parameters based on available location data
+        const params = new URLSearchParams();
+        
+        if (farmerData.settings.latitude && farmerData.settings.longitude) {
+          params.append('lat', farmerData.settings.latitude.toString());
+          params.append('lon', farmerData.settings.longitude.toString());
+        }
+        
+        if (farmerData.settings.city) {
+          params.append('city', farmerData.settings.city);
+        }
+        
+        if (farmerData.settings.state) {
+          params.append('state', farmerData.settings.state);
+        }
+        
+        // Add farmer's crops to get relevant prices
+        if (farmerData.crops && farmerData.crops.length > 0) {
+          const cropNames = farmerData.crops.map(crop => crop.name);
+          params.append('crops', JSON.stringify(cropNames));
+        }
+        
+        const response = await fetch(`/api/v1/protected/market-prices?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch market prices');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.prices.length > 0) {
+          setMarketPrices(result.data.prices);
+          console.log('Market prices fetched from:', result.data.source);
+        } else {
+          throw new Error(result.error || 'No market price data available');
+        }        
+      } catch (error) {
+        console.error('Market prices fetch error:', error);
+        setMarketError('Failed to fetch live market prices. Showing sample data.');
+        
+        // Keep the existing mock data as fallback
+        console.log('Using mock market price data as fallback');
+      } finally {
+        setMarketLoading(false);
+      }
+    };
+    
+    if (farmerData && !loading) {
+      fetchMarketPrices();
+    }
+  }, [farmerData, loading]);
 
   return (
     <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border">
@@ -46,9 +168,31 @@ const MarketPrices = () => {
         </div>
       </div>
       <div className="p-3 sm:p-4 md:p-6">
+        {/* Loading indicator */}
+        {marketLoading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <span className="ml-2 text-gray-600">Loading market prices...</span>
+          </div>
+        )}
+
+        {/* Error message */}
+        {marketError && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-yellow-400">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-800">{marketError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3 sm:space-y-4">
           {marketPrices.map((item) => (
-            <div key={item.crop} className="bg-gradient-to-r from-gray-50 to-white border border-gray-100 rounded-xl p-3 sm:p-4">
+            <div key={`${item.location}-${item.crop}`} className="bg-gradient-to-r from-gray-50 to-white border border-gray-100 rounded-xl p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                 {/* Left Section - Crop Info */}
                 <div className="flex items-center gap-3 sm:gap-4">
@@ -69,7 +213,7 @@ const MarketPrices = () => {
                 <div className="flex items-center justify-between sm:justify-center sm:flex-col sm:gap-1">
                   <div className="text-right sm:text-center">
                     <div className="text-lg sm:text-xl font-bold text-gray-900">₹{item.price.toLocaleString()}</div>
-                    <div className="text-xs sm:text-sm text-gray-600">per quintal</div>
+                    <div className="text-xs sm:text-sm text-gray-600">per {item.unit || 'quintal'}</div>
                   </div>
                 </div>
 
@@ -105,14 +249,14 @@ const MarketPrices = () => {
               {/* Bottom Section - Price Trend */}
               <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs sm:text-sm text-gray-600">
                 <span>Last week: ₹{item.lastWeek.toLocaleString()}</span>
-                <span>Updated 2 min ago</span>
+                <span>{item.lastUpdated || 'Updated 2 min ago'}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Quick Market Insights */}
-        <MarketInsightCard />
+        <MarketInsightCard marketPrices={marketPrices} />
       </div>
     </div>
   )

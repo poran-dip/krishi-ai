@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthUser } from '@/lib/auth';
+import { withAuth } from '@/lib/auth';
 import { weatherService } from '@/services/weatherService';
 
-export const GET = withAuth(async (request: NextRequest, user: AuthUser) => {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url);
     const lat = searchParams.get('lat');
