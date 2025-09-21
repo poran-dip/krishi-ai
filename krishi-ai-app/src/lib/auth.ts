@@ -84,5 +84,22 @@ export const authUtils = {
   getAuthHeaders(): HeadersInit {
     const token = this.getToken()
     return token ? { 'Authorization': `Bearer ${token}` } : {}
+  },
+
+  updateToken(newToken: string): void {
+    if (typeof window === 'undefined') return
+    
+    // Preserve the storage method (localStorage vs sessionStorage)
+    const hasLocalToken = localStorage.getItem('token')
+    const hasSessionToken = sessionStorage.getItem('token')
+    
+    if (hasLocalToken) {
+      localStorage.setItem('token', newToken)
+    } else if (hasSessionToken) {
+      sessionStorage.setItem('token', newToken)
+    } else {
+      // Default to localStorage if neither exists
+      localStorage.setItem('token', newToken)
+    }
   }
 }

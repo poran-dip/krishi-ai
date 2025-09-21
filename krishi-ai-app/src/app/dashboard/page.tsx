@@ -20,43 +20,53 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // In DashboardPage component, replace the checkAuth function:
     const checkAuth = async () => {
       const token = authUtils.getToken()
       
-      if (token) {
-        try {
-          // verify token and get user
-          const response = await fetch('/api/v1/auth/verify', {
+      try {
+        // Always call verify (it will handle missing tokens and refresh logic)
+        const response = await fetch('/api/v1/auth/verify', {
+          method: 'GET',
+          credentials: 'include', // Important: includes cookies for refresh token
+          headers: token ? {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } : {
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setUser(data.user)
+          setAuthenticated(true)
+
+          // If we got a new token, store it (this happens when refresh token was used)
+          if (data.token) {
+            authUtils.setToken(data.token, true) // Assume remember=true if refresh token existed
+          }
+
+          // fetch farmer profile
+          const currentToken = data.token || token // Use new token if provided
+          const profileRes = await fetch('/api/v1/protected/profile', {
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${currentToken}`
             }
           })
 
-          if (response.ok) {
-            const data = await response.json()
-            setUser(data.user)
-            setAuthenticated(true)
-
-            // fetch farmer profile
-            const profileRes = await fetch('/api/v1/protected/profile', {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            })
-
-            if (profileRes.ok) {
-              const farmer = await profileRes.json()
-              setProfileComplete(isProfileComplete(farmer.data))
-            } else {
-              setProfileComplete(false) // no profile = not complete
-            }
+          if (profileRes.ok) {
+            const farmer = await profileRes.json()
+            setProfileComplete(isProfileComplete(farmer.data))
           } else {
-            authUtils.removeToken()
+            setProfileComplete(false)
           }
-        } catch (error) {
-          console.error('Auth check failed:', error)
+        } else {
           authUtils.removeToken()
         }
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        authUtils.removeToken()
       }
 
       setLoading(false)
@@ -86,22 +96,27 @@ const DashboardPage = () => {
   }
 
   const handleOnboardingComplete = async () => {
-    // Small delay to ensure PUT request completes
     await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Refetch profile data with fresh token check
+  
     const token = authUtils.getToken();
     
-    // Check if token is still valid
     try {
       const verifyRes = await fetch('/api/v1/auth/verify', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'GET',
+        credentials: 'include', // Add this
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       
       if (!verifyRes.ok) {
         console.log('Token expired, user needs to re-login');
         handleLogout();
         return;
+      }
+
+      // Check if we got a new token and update it
+      const verifyData = await verifyRes.json();
+      if (verifyData.token) {
+        authUtils.updateToken(verifyData.token);
       }
     } catch (error) {
       console.error('Token verification failed:', error);
