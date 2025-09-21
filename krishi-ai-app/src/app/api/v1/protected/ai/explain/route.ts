@@ -1,10 +1,11 @@
-// app/api/v1/ai/explain/route.ts
-import { NextResponse } from "next/server";
+// app/api/v1/protected/ai/explain/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { withAuth } from "@/lib/auth";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export async function POST(req: Request) {
+export const POST = withAuth(async (req: NextRequest) => {
   try {
     const { soil, weather, market, crops, prompt } = await req.json();
 
@@ -114,4 +115,4 @@ AVOID saying farmers should make their own decisions - that's why they're asking
       { status: 500 }
     );
   }
-}
+})

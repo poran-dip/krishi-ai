@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { MessageCircle, Send, Bot, User, Sparkles } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
+import { authUtils } from "@/lib/auth"
 
 const AskAI = () => {
   const [messages, setMessages] = useState([
@@ -29,11 +30,16 @@ const AskAI = () => {
     setLoading(true)
 
     try {
-      const res = await fetch("/api/v1/ai/explain", {
+      const token = authUtils.getToken()
+
+      const res = await fetch("/api/v1/protected/ai/explain", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          soil: { pH: 6.5, moisture: 20 }, // TODO: replace with real farmer data
+          soil: { pH: 6.5, moisture: 20 },
           weather: { rainfall: 120, temperature: 28 },
           market: { demandIndex: 75 },
           crops: [
@@ -44,6 +50,8 @@ const AskAI = () => {
           prompt: inputMessage,
         }),
       })
+
+      if (!res.ok) throw new Error("Failed to fetch AI response")
 
       const data = await res.json()
 

@@ -2,10 +2,56 @@
 
 import { Lightbulb } from "lucide-react"
 import { useState } from "react"
+import { authUtils } from "@/lib/auth"
 import RecommendationsCard from "./RecommendationsCard"
+
+interface Crop {
+  crop: string
+  suitability: string
+  expectedRevenue: string
+}
 
 const AISuggestions = () => {
   const [showRecommendations, setShowRecommendations] = useState(false)
+  const [criteria, setCriteria] = useState("all")
+  const [recommendations, setRecommendations] = useState<Crop[]>([])
+  const [loading, setLoading] = useState(false)
+
+  async function fetchRecommendations() {
+    try {
+      setLoading(true)
+      const token = authUtils.getToken()
+
+      const res = await fetch("/api/v1/protected/ai/recommend-crop", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ criteria }),
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch recommendations")
+      }
+
+      const data = await res.json()
+
+      // later API will give full objects, but for now mock
+      const mapped = data.recommendations.map((crop: string) => ({
+        crop,
+        suitability: ["Very High", "High", "Medium"][Math.floor(Math.random() * 3)],
+        expectedRevenue: `₹${Math.floor(Math.random() * 30) + 10}k`,
+      }))
+
+      setRecommendations(mapped)
+      setShowRecommendations(true)
+    } catch (e) {
+      console.error("Error fetching AI recs", e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -28,29 +74,34 @@ const AISuggestions = () => {
           {/* Right: Dropdown + Button */}
           <div className="grid grid-cols-3 sm:flex sm:flex-row items-center gap-2 sm:gap-3 w-full md:w-auto">
             {/* Field dropdown */}
-            <select 
-              className="col-span-1 border border-green-200 rounded-lg p-2 text-sm sm:text-base text-green-900 bg-white w-full md:w-auto"
-              onChange={() => setShowRecommendations(false)}
+            <select
+              value={criteria}
+              onChange={(e) => {
+                setCriteria(e.target.value)
+                setShowRecommendations(false)
+              }}
             >
-              <option>All</option>
-              <option>Field 1</option>
-              <option>Field 2</option>
-              <option>Field 3</option>
+              <option value="soil">Based on Soil</option>
+              <option value="weather">Based on Weather</option>
+              <option value="rotation">Based on Crop Rotation</option>
+              <option value="market">Based on Market Demand</option>
+              <option value="sustainability">Based on Sustainability</option>
+              <option value="all">Overall Recommendation</option>
             </select>
 
             {/* Action button */}
             <button 
               className="col-span-2 bg-green-600 hover:bg-green-700 text-white text-sm md:text-base font-medium px-2 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto cursor-pointer"
-              onClick={() => setShowRecommendations(true)}
+              onClick={() => fetchRecommendations}
             >
               Show AI Suggestions
             </button>
           </div>
         </div>
 
-        {showRecommendations &&
-          <RecommendationsCard />
-        }
+        {showRecommendations && (
+          <RecommendationsCard recommendations={recommendations} loading={loading} />
+        )}
       </div>
     </>
   )
