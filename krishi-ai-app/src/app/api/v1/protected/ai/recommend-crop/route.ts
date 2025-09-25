@@ -11,13 +11,20 @@ interface Crop {
 const mockCrops = ["Wheat", "Rice", "Maize", "Soybean", "Pulses", "Cotton", "Barley"]
 
 function getRandomCrops(count = 3): Crop[] {
-  const shuffled = mockCrops.sort(() => 0.5 - Math.random()).slice(0, count)
+  const available = [...mockCrops]
+  const result: Crop[] = []
 
-  return shuffled.map((crop) => ({
-    crop,
-    suitability: ["Very High", "High", "Medium"][Math.floor(Math.random() * 3)],
-    expectedRevenue: `₹${Math.floor(Math.random() * 30) + 10}k`,
-  }))
+  for (let i = 0; i < count && available.length > 0; i++) {
+    const idx = Math.floor(Math.random() * available.length)
+    const crop = available.splice(idx, 1)[0]
+    result.push({
+      crop,
+      suitability: ["Very High", "High", "Medium"][Math.floor(Math.random() * 3)],
+      expectedRevenue: `₹${Math.floor(Math.random() * 30) + 10}k`,
+    })
+  }
+
+  return result
 }
 
 export const POST = withAuth(async (req: NextRequest) => {

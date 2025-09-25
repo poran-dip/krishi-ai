@@ -37,14 +37,8 @@ const AISuggestions = () => {
 
       const data = await res.json()
 
-      // later API will give full objects, but for now mock
-      const mapped = data.recommendations.map((crop: string) => ({
-        crop,
-        suitability: ["Very High", "High", "Medium"][Math.floor(Math.random() * 3)],
-        expectedRevenue: `₹${Math.floor(Math.random() * 30) + 10}k`,
-      }))
-
-      setRecommendations(mapped)
+      // Since API now returns full Crop objects, use them directly
+      setRecommendations(data.recommendations)
       setShowRecommendations(true)
     } catch (e) {
       console.error("Error fetching AI recs", e)
@@ -93,7 +87,7 @@ const AISuggestions = () => {
             {/* Action button */}
             <button 
               className="col-span-2 bg-green-600 hover:bg-green-700 text-white text-sm md:text-base font-medium px-2 py-2 sm:px-4 rounded-lg flex items-center gap-2 transition-colors w-full md:w-auto cursor-pointer"
-              onClick={() => fetchRecommendations}
+              onClick={fetchRecommendations}
             >
               Show AI Suggestions
             </button>
