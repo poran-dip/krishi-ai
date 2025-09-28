@@ -19,8 +19,31 @@ const DashboardPage = () => {
   const [profileComplete, setProfileComplete] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const checkProfileCompleteness = async (token: string) => {
+    try {
+      const profileRes = await fetch('/api/v1/protected/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (profileRes.ok) {
+        const farmer = await profileRes.json()
+        const isComplete = isProfileComplete(farmer.data)
+        setProfileComplete(isComplete)
+        return isComplete
+      } else {
+        setProfileComplete(false)
+        return false
+      }
+    } catch (error) {
+      console.error('Error checking profile:', error)
+      setProfileComplete(false)
+      return false
+    }
+  }
+
   useEffect(() => {
-    // In DashboardPage component, replace the checkAuth function:
     const checkAuth = async () => {
       const token = authUtils.getToken()
       
@@ -47,19 +70,10 @@ const DashboardPage = () => {
             authUtils.setToken(data.token, true) // Assume remember=true if refresh token existed
           }
 
-          // fetch farmer profile
-          const currentToken = data.token || token // Use new token if provided
-          const profileRes = await fetch('/api/v1/protected/profile', {
-            headers: {
-              'Authorization': `Bearer ${currentToken}`
-            }
-          })
-
-          if (profileRes.ok) {
-            const farmer = await profileRes.json()
-            setProfileComplete(isProfileComplete(farmer.data))
-          } else {
-            setProfileComplete(false)
+          const currentToken = data.token || token
+          const isComplete = await checkProfileCompleteness(currentToken)
+          if (isComplete) {
+            console.log('Profile already complete, user will go directly to dashboard')
           }
         } else {
           authUtils.removeToken()
@@ -75,24 +89,24 @@ const DashboardPage = () => {
     checkAuth()
   }, [])
 
-  const handleLogin = (userData: User) => {
+  const handleLogin = async (userData: User) => {
     setUser(userData)
     setAuthenticated(true)
+
+    // Check profile completeness immediately after login
+    const token = authUtils.getToken()
+    if (token) {
+      const isComplete = await checkProfileCompleteness(token)
+      console.log('Profile check on login:', isComplete)
+    }
   }
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/v1/auth/signout', {
-        method: 'POST',
-        headers: authUtils.getAuthHeaders()
-      })
-    } catch (error) {
-      console.error('Logout error:', error)
-    } finally {
-      authUtils.removeToken()
-      setUser(null)
-      setAuthenticated(false)
-    }
+  const handleLogout = () => {
+    authUtils.removeToken()
+    sessionStorage.removeItem('token')
+    localStorage.removeItem('token')
+    setUser(null)
+    setAuthenticated(false)
   }
 
   const handleOnboardingComplete = async () => {
@@ -103,7 +117,7 @@ const DashboardPage = () => {
     try {
       const verifyRes = await fetch('/api/v1/auth/verify', {
         method: 'GET',
-        credentials: 'include', // Add this
+        credentials: 'include',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       
@@ -115,34 +129,18 @@ const DashboardPage = () => {
 
       // Check if we got a new token and update it
       const verifyData = await verifyRes.json();
+      const currentToken = verifyData.token || token;
       if (verifyData.token) {
         authUtils.updateToken(verifyData.token);
       }
+
+      const isComplete = await checkProfileCompleteness(currentToken);
+      console.log('Profile refetched after onboarding, complete:', isComplete);
+      
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     } catch (error) {
       console.error('Token verification failed:', error);
       handleLogout();
-      return;
-    }
-
-    // Now fetch profile with verified token
-    try {
-      const profileRes = await fetch('/api/v1/protected/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (profileRes.ok) {
-        const farmer = await profileRes.json();
-        console.log('Profile refetched after onboarding:', farmer);
-        setProfileComplete(isProfileComplete(farmer.data));
-
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      } else {
-        console.log('Profile fetch failed after onboarding:', profileRes.status);
-        setProfileComplete(false);
-      }
-    } catch (error) {
-      console.error('Error refetching profile:', error);
-      setProfileComplete(false);
     }
   };
 
@@ -169,7 +167,6 @@ const DashboardPage = () => {
         name: user.name,
         email: user.email
       }}
-      onLogout={handleLogout}
     />
   )
 }

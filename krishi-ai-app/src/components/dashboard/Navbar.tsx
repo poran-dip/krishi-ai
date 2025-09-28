@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
-import { Bell, Lightbulb, User } from 'lucide-react';
-import NotificationsPane from './NotificationsPane';
-import ProfilePane from './ProfilePane';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Bell, Lightbulb, User } from 'lucide-react';
+import { Prisma } from '@/generated/prisma';
+import NotificationsPane from './NotificationsPane';
+import ProfilePane from './ProfilePane';
 
 const notifications = [
   { id: 1, type: "weather", message: "Light rain expected in 2 days", time: "1h ago" },
@@ -13,13 +14,19 @@ const notifications = [
   { id: 3, type: "reminder", message: "Time to apply fertilizer to rice field", time: "1d ago" }
 ];
 
+type Farmer = Prisma.FarmerGetPayload<{
+  include: {
+    crops: true;
+    settings: true;
+  }
+}>
+
 interface NavbarProps {
-  userName: string
-  userEmail: string
-  onLogout: () => void
+  farmerData: Farmer | null
+  isLoading: boolean
 }
 
-const Navbar = ({ userName, userEmail, onLogout }: NavbarProps) => {
+const Navbar = ({ farmerData, isLoading }: NavbarProps) => {
   const [showNavbar, setShowNavbar] = useState(true)
   const [lastScrollY, setLastScrollY] = useState(0)
 
@@ -111,10 +118,9 @@ const Navbar = ({ userName, userEmail, onLogout }: NavbarProps) => {
 
       {showProfile && (
         <ProfilePane 
-          userName={userName}
-          userEmail={userEmail}
+          farmerData={farmerData}
+          isLoading={isLoading}
           onClose={() => setShowProfile(false)}
-          onLogout={onLogout}
         />
       )}
 

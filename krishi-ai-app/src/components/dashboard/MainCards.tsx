@@ -1,8 +1,5 @@
 import { Prisma } from "@/generated/prisma";
-import { authUtils } from "@/lib/auth";
-import { useEffect, useState } from "react";
 import { WeatherData, WeatherAlert, ForecastDay } from '@/services/weatherService';
-import { SoilDataService } from '@/services/soilDataService';
 
 type Farmer = Prisma.FarmerGetPayload<{
   include: {
@@ -11,167 +8,37 @@ type Farmer = Prisma.FarmerGetPayload<{
   }
 }>;
 
-const MainCards = () => {
-  const [farmerData, setFarmerData] = useState<Farmer | null>(null);
-  const [weatherLoading, setWeatherLoading] = useState(false);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [weatherAlerts, setWeatherAlerts] = useState<WeatherAlert[]>([]);
-  const [weeklyForecast, setWeeklyForecast] = useState<ForecastDay[]>([]);
-  const [soilDataLoading, setSoilDataLoading] = useState(false);
-  const [soilDataError, setSoilDataError] = useState<string | null>(null);
-  const [soilData, setSoilData] = useState<{
+interface MainCardsProps {
+  farmerData: Farmer | null
+  farmerLoading: boolean
+  weatherData: WeatherData | null
+  weatherLoading: boolean
+  weatherError: string | null
+  weatherAlerts: WeatherAlert[]
+  weeklyForecast: ForecastDay[]
+  soilData: {
     nitrogen: number | string;
     phosphorus: number | string;
     potassium: number | string;
     ph: number | string;
     organicMatter: number | string;
-  }>({
-    nitrogen: "-",
-    phosphorus: "-",
-    potassium: "-",
-    ph: "-",
-    organicMatter: "-"
-  });
+  }
+  soilDataLoading: boolean
+  soilDataError: string | null
+}
 
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchFarmerData = async () => {
-      try {
-          const token = authUtils.getToken();
-          const response = await fetch('/api/v1/protected/profile', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-        if (response.ok) {
-          const result = await response.json();
-          setFarmerData(result.data);
-        }
-      } catch (error) {
-        console.error('Error fetching farmer data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFarmerData();
-  }, []);
-
-  useEffect(() => {
-    const fetchSoilData = async () => {
-      if (!farmerData?.settings) return;
-      
-      setSoilDataLoading(true);
-      setSoilDataError(null);
-      
-      try {
-        let realSoilData;
-        
-        // Priority 1: Use stored lat/lon
-        if (farmerData.settings.latitude && farmerData.settings.longitude) {
-          console.log('Fetching soil data using stored coordinates');
-          realSoilData = await SoilDataService.fetchSoilData(
-            farmerData.settings.latitude, 
-            farmerData.settings.longitude
-          );
-        }
-        // Priority 2: Use city/state for geocoding
-        else if (farmerData.settings.city && farmerData.settings.state) {
-          console.log('Fetching soil data using city/state geocoding');
-          realSoilData = await SoilDataService.getSoilDataFromLocation(
-            farmerData.settings.city,
-            farmerData.settings.state,
-            farmerData.settings.country
-          );
-        }
-        // Priority 3: Try current location
-        else {
-          console.log('Attempting to get current location for soil data');
-          realSoilData = await SoilDataService.getCurrentLocationSoilData();
-        }
-        
-        if (realSoilData) {
-          setSoilData(realSoilData);
-          console.log('Real soil data fetched:', realSoilData);
-        }
-        
-      } catch (error) {
-        console.error('Failed to fetch real soil data:', error);
-        setSoilDataError(error instanceof Error ? error.message : 'Failed to fetch soil data');
-        
-        // Keep mock data as fallback - no need to change soilData state
-        console.log('Using mock soil data as fallback');
-      } finally {
-        setSoilDataLoading(false);
-      }
-    };
-    
-    // Only fetch soil data after farmer data is loaded
-    if (farmerData && !loading) {
-      fetchSoilData();
-    }
-  }, [farmerData, loading]);
-
-  useEffect(() => {
-    const fetchWeatherData = async () => {
-      if (!farmerData?.settings) return;
-      
-      setWeatherLoading(true);
-      setWeatherError(null);
-      
-      try {
-        const token = authUtils.getToken();
-        
-        // Build query parameters based on available location data
-        const params = new URLSearchParams();
-        
-        if (farmerData.settings.latitude && farmerData.settings.longitude) {
-          params.append('lat', farmerData.settings.latitude.toString());
-          params.append('lon', farmerData.settings.longitude.toString());
-        } else if (farmerData.settings.city && farmerData.settings.state) {
-          params.append('city', farmerData.settings.city);
-          params.append('state', farmerData.settings.state);
-          if (farmerData.settings.country) {
-            params.append('country', farmerData.settings.country);
-          }
-        }
-        
-        const response = await fetch(`/api/v1/protected/weather?${params.toString()}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch weather data');
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          setWeatherData(result.data.current);
-          setWeeklyForecast(result.data.weeklyForecast);
-          setWeatherAlerts(result.data.alerts);
-        } else {
-          throw new Error(result.error || 'Weather API returned error');
-        }
-        
-      } catch (error) {
-        console.error('Weather fetch error:', error);
-        setWeatherError('Failed to fetch weather data');
-      } finally {
-        setWeatherLoading(false);
-      }
-    };
-    
-    if (farmerData && !loading) {
-      fetchWeatherData();
-    }
-  }, [farmerData, loading]);
-
+const MainCards = ({
+  farmerData,
+  farmerLoading,
+  weatherData,
+  weatherLoading,
+  weatherError,
+  weatherAlerts,
+  weeklyForecast,
+  soilData,
+  soilDataLoading,
+  soilDataError
+}: MainCardsProps) => {
   const currentCrops = farmerData?.crops?.map((crop) => ({
     id: crop.id,
     name: crop.name,
@@ -212,39 +79,10 @@ const MainCards = () => {
     }
   }
 
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-      </div>
-    );
-  }
-
   if (!farmerData) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-gray-500">No farmer data available</div>
-      </div>
-    );
-  }
-  
-  if (soilDataLoading) {
-    return (
-      <div className="text-xs text-gray-500 mb-2 flex items-center">
-        <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full mr-1"></div>
-        Fetching real soil data...
-      </div>
-    );
-  }
-  
-  if (soilDataError) {
-    return (
-      <div className="text-xs text-amber-600 mb-2 flex items-center">
-        <span className="mr-1">⚠️</span>
-        {soilDataError.includes('Rate limit') ? 'Rate limited - using cached data' : 
-         soilDataError.includes('location') ? 'Location access needed for real data' :
-         'Using sample data - enable location for real soil data'}
       </div>
     );
   }
@@ -261,19 +99,31 @@ const MainCards = () => {
           <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
             <div className="text-center">
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600">
-                {farmerData.settings?.farmSize || 0}
+                {farmerLoading ? (
+                  <div className="h-6 sm:h-7 md:h-8 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  farmerData?.settings?.farmSize || 0
+                )}
               </div>
               <div className="text-xs text-gray-600">Total Acres</div>
             </div>
             <div className="text-center">
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">
-                {farmerData.crops?.length || 0}
+                {farmerLoading ? (
+                  <div className="h-6 sm:h-7 md:h-8 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  farmerData?.crops?.length || 0
+                )}
               </div>
               <div className="text-xs text-gray-600">Active Crops</div>
             </div>
             <div className="text-center">
               <div className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-600">
-                ₹{farmerData.revenue ? formatRevenue(farmerData.revenue) : '0'}
+                {farmerLoading ? (
+                  <div className="h-6 sm:h-7 md:h-8 bg-gray-200 rounded animate-pulse"></div>
+                ) : (
+                  `₹${farmerData?.revenue ? formatRevenue(farmerData.revenue) : '0'}`
+                )}
               </div>
               <div className="text-xs text-gray-600">Est. Revenue</div>
             </div>
@@ -282,28 +132,98 @@ const MainCards = () => {
           {/* Soil Health Section */}
           <div>
             <h3 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Soil Health (NPK)</h3>
+            
+            {/* Soil Data Error */}
+            {soilDataError && (
+              <div className="mb-3 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="text-xs sm:text-sm font-medium text-red-800">
+                  Failed to load soil data
+                </div>
+              </div>
+            )}
+            
             <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-3">
-              <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm sm:text-base md:text-lg font-bold text-blue-600">{soilData.nitrogen}{soilData.nitrogen !== "-" ? "%" : ""}</div>
-                <div className="text-xs text-gray-600">Nitrogen</div>
+              <div className={`text-center p-2 sm:p-3 rounded-lg ${soilDataLoading ? 'bg-gray-100 animate-pulse' : 'bg-blue-50'}`}>
+                <div className={`text-sm sm:text-base md:text-lg font-bold ${soilDataLoading ? 'text-gray-400' : 'text-blue-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="h-5 sm:h-6 md:h-7 bg-gray-200 rounded mx-auto w-8"></div>
+                  ) : (
+                    `${soilData.nitrogen}${soilData.nitrogen !== "-" ? "%" : ""}`
+                  )}
+                </div>
+                <div className={`text-xs ${soilDataLoading ? '' : 'text-gray-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="mt-2 h-3 bg-gray-200 rounded mx-auto w-20"></div>
+                  ) : (
+                    "Nitrogen"
+                  )}
+                </div>
               </div>
-              <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg">
-                <div className="text-sm sm:text-base md:text-lg font-bold text-green-600">{soilData.phosphorus}{soilData.phosphorus !== "-" ? "%" : ""}</div>
-                <div className="text-xs text-gray-600">Phosphorus</div>
+              <div className={`text-center p-2 sm:p-3 rounded-lg ${soilDataLoading ? 'bg-gray-100 animate-pulse' : 'bg-green-50'}`}>
+                <div className={`text-sm sm:text-base md:text-lg font-bold ${soilDataLoading ? 'text-gray-400' : 'text-green-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="h-5 sm:h-6 md:h-7 bg-gray-200 rounded mx-auto w-8"></div>
+                  ) : (
+                    `${soilData.phosphorus}${soilData.phosphorus !== "-" ? "%" : ""}`
+                  )}
+                </div>
+                <div className={`text-xs ${soilDataLoading ? '' : 'text-gray-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="mt-2 h-3 bg-gray-200 rounded mx-auto w-20"></div>
+                  ) : (
+                    "Phosphorus"
+                  )}
+                </div>
               </div>
-              <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg">
-                <div className="text-sm sm:text-base md:text-lg font-bold text-purple-600">{soilData.potassium}{soilData.potassium !== "-" ? "%" : ""}</div>
-                <div className="text-xs text-gray-600">Potassium</div>
+              <div className={`text-center p-2 sm:p-3 rounded-lg ${soilDataLoading ? 'bg-gray-100 animate-pulse' : 'bg-purple-50'}`}>
+                <div className={`text-sm sm:text-base md:text-lg font-bold ${soilDataLoading ? 'text-gray-400' : 'text-purple-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="h-5 sm:h-6 md:h-7 bg-gray-200 rounded mx-auto w-8"></div>
+                  ) : (
+                    `${soilData.potassium}${soilData.potassium !== "-" ? "%" : ""}`
+                  )}
+                </div>
+                <div className={`text-xs ${soilDataLoading ? '' : 'text-gray-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="mt-2 h-3 bg-gray-200 rounded mx-auto w-20"></div>
+                  ) : (
+                    "Potassium"
+                  )}
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div className="text-center p-2 sm:p-3 bg-yellow-50 rounded-lg">
-                <div className="text-sm sm:text-base md:text-lg font-bold text-yellow-600">{soilData.ph}</div>
-                <div className="text-xs text-gray-600">pH Level</div>
+              <div className={`text-center p-2 sm:p-3 rounded-lg ${soilDataLoading ? 'bg-gray-100 animate-pulse' : 'bg-yellow-50'}`}>
+                <div className={`text-sm sm:text-base md:text-lg font-bold ${soilDataLoading ? 'text-gray-400' : 'text-yellow-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="h-5 sm:h-6 md:h-7 bg-gray-200 rounded mx-auto w-8"></div>
+                  ) : (
+                    soilData.ph
+                  )}
+                </div>
+                <div className={`text-xs ${soilDataLoading ? '' : 'text-gray-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="mt-2 h-3 bg-gray-200 rounded mx-auto w-28"></div>
+                  ) : (
+                    "pH Level"
+                  )}
+                </div>
               </div>
-              <div className="text-center p-2 sm:p-3 bg-orange-50 rounded-lg">
-                <div className="text-sm sm:text-base md:text-lg font-bold text-orange-600">{soilData.organicMatter}{soilData.organicMatter !== "-" ? "%" : ""}</div>
-                <div className="text-xs text-gray-600">Organic Matter</div>
+              <div className={`text-center p-2 sm:p-3 rounded-lg ${soilDataLoading ? 'bg-gray-100 animate-pulse' : 'bg-orange-50'}`}>
+                <div className={`text-sm sm:text-base md:text-lg font-bold ${soilDataLoading ? 'text-gray-400' : 'text-orange-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="h-5 sm:h-6 md:h-7 bg-gray-200 rounded mx-auto w-8"></div>
+                  ) : (
+                    `${soilData.organicMatter}${soilData.organicMatter !== "-" ? "%" : ""}`
+                  )}
+                </div>
+                <div className={`text-xs ${soilDataLoading ? '' : 'text-gray-600'}`}>
+                  {soilDataLoading ? (
+                    <div className="mt-2 h-3 bg-gray-200 rounded mx-auto w-28"></div>
+                  ) : (
+                    "Organic Matter"
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -316,19 +236,24 @@ const MainCards = () => {
           <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">Weather Overview</h2>
         </div>
         <div className="p-3 sm:p-4 md:p-6">
-          {weatherLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          {/* Weather Data Error */}
+          {weatherError && (
+            <div className="mb-3 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="text-xs sm:text-sm font-medium text-red-800">
+                Failed to load weather data
+              </div>
             </div>
-          ) : weatherError ? (
+          )}
+          
+          {weatherLoading ? (
             <div className="animate-pulse">
-              {/* Wireframe Current Weather */}
+              {/* Skeleton Current Weather */}
               <div className="text-center mb-4 sm:mb-6">
                 <div className="h-10 sm:h-12 md:h-16 bg-gray-200 rounded-lg mb-2 mx-auto w-24"></div>
                 <div className="h-4 bg-gray-200 rounded mx-auto w-32 mb-3"></div>
               </div>
               
-              {/* Wireframe Weather Details */}
+              {/* Skeleton Weather Details */}
               <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
                 <div className="text-center p-2 sm:p-3 bg-gray-50 rounded-lg">
                   <div className="h-6 sm:h-8 bg-gray-200 rounded mx-auto w-12 mb-1"></div>
@@ -340,13 +265,11 @@ const MainCards = () => {
                 </div>
               </div>
 
-              {/* Wireframe Alert */}
+              {/* Skeleton Alert */}
               <div>
                 <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-                <div className="p-2 sm:p-3 rounded-lg border-l-4 bg-red-50 border-red-400">
-                  <div className="text-xs sm:text-sm font-medium text-red-600">
-                    Unable to load weather data
-                  </div>
+                <div className="p-2 sm:p-3 rounded-lg border-l-4 bg-gray-50 border-gray-300">
+                  <div className="h-4 bg-gray-200 rounded w-32"></div>
                 </div>
               </div>
             </div>
@@ -398,7 +321,21 @@ const MainCards = () => {
           <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">Active Crops</h2>
         </div>
         <div className="p-3 sm:p-4 md:p-6">
-          {currentCrops.length === 0 ? (
+          {farmerLoading ? (
+            <div className="space-y-2 sm:space-y-3 animate-pulse">
+              {[...Array(3)].map((_, index) => (
+                <div key={index} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1 sm:gap-2 mb-1">
+                      <div className="h-4 sm:h-5 bg-gray-200 rounded w-20"></div>
+                      <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    </div>
+                    <div className="h-3 bg-gray-200 rounded w-48"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : currentCrops.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <div className="text-sm">No crops planted yet</div>
               <div className="text-xs mt-1">Add your first crop to get started</div>
@@ -445,13 +382,22 @@ const MainCards = () => {
           <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">5-Day Forecast</h2>
         </div>
         <div className="p-3 sm:p-4 md:p-6">
-          {weatherError ? (
+          {/* Weather Data Error */}
+          {weatherError && (
+            <div className="mb-3 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="text-xs sm:text-sm font-medium text-red-800">
+                Failed to load weather data
+              </div>
+            </div>
+          )}
+          
+          {weatherLoading ? (
             <div className="animate-pulse space-y-1 sm:space-y-2">
               {[...Array(5)].map((_, index) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                   <div className="flex items-center gap-2">
                     <div className="h-4 bg-gray-200 rounded w-12"></div>
-                    <div className="h-4 bg-gray-200 rounded w-8"></div>
+                    <div className="h-4 bg-gray-200 rounded w-16"></div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="h-4 bg-gray-200 rounded w-8"></div>

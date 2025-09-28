@@ -4,6 +4,7 @@ import { Lightbulb } from "lucide-react"
 import { useState } from "react"
 import { authUtils } from "@/lib/auth"
 import RecommendationsCard from "./RecommendationsCard"
+import { WeatherData } from "@/services/weatherService"
 
 interface Crop {
   crop: string
@@ -11,7 +12,18 @@ interface Crop {
   expectedRevenue: string
 }
 
-const AISuggestions = () => {
+interface AISuggestionsProps {
+  weatherData: WeatherData | null
+  soilData: {
+    nitrogen: number | string;
+    phosphorus: number | string;
+    potassium: number | string;
+    ph: number | string;
+    organicMatter: number | string;
+  }
+}
+
+const AISuggestions = ({ weatherData, soilData }: AISuggestionsProps) => {
   const [showRecommendations, setShowRecommendations] = useState(false)
   const [criteria, setCriteria] = useState("all")
   const [recommendations, setRecommendations] = useState<Crop[]>([])
@@ -28,7 +40,11 @@ const AISuggestions = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ criteria }),
+        body: JSON.stringify({
+          criteria,
+          weatherData,
+          soilData,
+        }),
       })
 
       if (!res.ok) {

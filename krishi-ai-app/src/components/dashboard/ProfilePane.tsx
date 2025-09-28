@@ -17,39 +17,23 @@ import {
   ChevronRight,
   User
 } from 'lucide-react';
-import { authUtils } from '@/lib/auth';
+import { Prisma } from '@/generated/prisma';
+
+type Farmer = Prisma.FarmerGetPayload<{
+  include: {
+    crops: true;
+    settings: true;
+  }
+}>
 
 interface ProfilePaneProps {
-  userName: string
-  userEmail: string
+  farmerData: Farmer | null
+  isLoading: boolean
   onClose: () => void
-  onLogout: () => void
 }
 
-interface Farmer {
-  name: string
-  email: string
-  phone: string
-  avatar?: string
-  settings: {
-    languagePreference: string
-    city: string
-    state: string
-    farmSize: number
-    farmType: string
-    organicCertified: boolean
-  }
-  crops: {
-    id: string
-    name: string
-  }[]
-  lastSync: string
-}
-
-const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
-  const [farmerData, setFarmerData] = useState<Farmer | null>(null);
+const ProfilePane = ({ farmerData, isLoading, onClose }: ProfilePaneProps) => {
   const [selectedLanguage, setSelectedLanguage] = useState("en");
-  const [isLoading, setIsLoading] = useState(true);
   const paneRef = useRef<HTMLDivElement | null>(null);
 
   const languages = [
@@ -69,61 +53,6 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
     ORGANIC: "Organic Farm",
     GREENHOUSE: "Greenhouse",
   };
-
-  useEffect(() => {
-    async function fetchFarmer() {
-      try {
-        const res = await fetch('/api/v1/protected/profile', {
-          headers: authUtils.getAuthHeaders()
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setFarmerData(data.data);
-          setSelectedLanguage(data.data.settings?.languagePreference || 'en');
-        } else {
-          // If profile fetch fails, use basic user data from props
-          setFarmerData({
-            name: userName,
-            email: userEmail,
-            phone: '',
-            settings: {
-              languagePreference: 'en',
-              city: '',
-              state: '',
-              farmSize: 0,
-              farmType: '',
-              organicCertified: false
-            },
-            crops: [],
-            lastSync: 'Never'
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        // Fallback to basic data
-        setFarmerData({
-          name: userName,
-          email: userEmail,
-          phone: '',
-          settings: {
-            languagePreference: 'en',
-            city: '',
-            state: '',
-            farmSize: 0,
-            farmType: '',
-            organicCertified: false
-          },
-          crops: [],
-          lastSync: 'Never'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    fetchFarmer();
-  }, [userName, userEmail]);
 
   // Close on outside click
   useEffect(() => {
@@ -159,7 +88,7 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
 
       const res = await fetch('/api/v1/auth/signout', {
         method: 'POST',
-        credentials: 'include' // important if your refresh token is in a cookie
+        credentials: 'include'
       });
 
       if (!res.ok) {
@@ -169,17 +98,17 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
       sessionStorage.removeItem('token')
       localStorage.removeItem('token')
       
-      // optional: redirect or update app state
-      window.location.href = '/'; // redirect to homepage after logout
+      // redirect to homepage after logout
+      window.location.href = '/';
     } catch (err) {
       console.error('Error signing out:', err);
     }
   };
 
-  const timeAgo = (lastSync: string) => {
+  const timeAgo = (lastSync: Date | string) => {
     if (!lastSync) return 'Never'
 
-    const syncDate = new Date(lastSync)
+    const syncDate = lastSync instanceof Date ? lastSync : new Date(lastSync)
     const now = new Date()
     let diffMs = now.getTime() - syncDate.getTime()
 
@@ -197,7 +126,7 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
     return `${diffDays} d ago`
   }
 
-  if (isLoading) {
+  if (isLoading || !farmerData) {
     return (
       <>
         {/* Mobile backdrop blur */}
@@ -209,26 +138,65 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
           className="fixed z-50 bg-white rounded-lg shadow-2xl border border-gray-200
                     md:absolute md:right-4 md:top-20 md:w-96
                     inset-4 md:inset-auto
-                    max-h-[90vh] overflow-y-auto flex flex-col items-center justify-center p-8 gap-4"
+                    max-h-[90vh] overflow-y-auto"
         >
-          {/* Spinner */}
-          <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+          {/* Header - Real elements */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Account</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X size={20} className="text-gray-500" />
+            </button>
+          </div>
 
-          {/* Loading text */}
-          <p className="text-gray-600 font-medium text-lg">Loading Profile...</p>
+          {/* Profile Info Skeleton */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gray-200 rounded-full animate-pulse"></div>
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-40 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
 
-          {/* Optional skeleton boxes */}
-          <div className="w-full mt-4 space-y-3">
-            <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+          {/* Farm Stats Skeleton */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Content Blocks Skeleton */}
+          <div className="p-4 space-y-4">
+            <div className="space-y-3">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+              <div className="flex gap-2">
+                <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-10 w-full bg-gray-200 rounded-lg animate-pulse"></div>
+            </div>
           </div>
         </div>
       </>
     );
   }
-
-  if (!farmerData) return null;
 
   return (
     <>
@@ -273,7 +241,7 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900">{farmerData.name}</h3>
               <p className="text-sm text-gray-600">{farmerData.email}</p>
-              {farmerData.settings.city && farmerData.settings.state && (
+              {farmerData.settings?.city && farmerData.settings.state && (
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                   <MapPin size={12} />
                   {farmerData.settings.city}, {farmerData.settings.state}
@@ -302,21 +270,21 @@ const ProfilePane = ({ userName, userEmail, onClose }: ProfilePaneProps) => {
               <Crop size={16} className="text-green-600" />
               <div>
                 <p className="text-gray-500">Land Area</p>
-                <p className="font-medium">{farmerData.settings.farmSize} acres</p>
+                <p className="font-medium">{farmerData.settings?.farmSize ?? 0} acres</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <MapPin size={16} className="text-blue-600" />
               <div>
                 <p className="text-gray-500">Farm Type</p>
-                <p className="font-medium">{farmTypeMap[farmerData.settings.farmType]}</p>
+                <p className="font-medium">{farmTypeMap[farmerData.settings?.farmType ?? ""] ?? "Unknown"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Award size={16} className="text-blue-600" />
               <div>
                 <p className="text-gray-500">Organic Certified</p>
-                <p className="font-medium">{farmerData.settings.organicCertified ? "Yes" : "No"}</p>
+                <p className="font-medium">{farmerData.settings?.organicCertified ? "Yes" : "No"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">

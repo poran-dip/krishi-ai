@@ -14,11 +14,11 @@ const Footer = () => {
           <Home size={22} />
           <span className="text-xs">Home</span>
         </Link>
-        <Link href="/dashboard/ai/crop-recommendation" className="flex flex-col items-center text-gray-600 hover:text-green-600">
+        <Link href="/dashboard/recommend-crops" className="flex flex-col items-center text-gray-600 hover:text-green-600">
           <Sprout size={22} />
           <span className="text-xs">Crops</span>
         </Link>
-        <Link href="/dashboard/ai/chat" className="flex flex-col items-center text-gray-600 hover:text-green-600">
+        <Link href="/dashboard/ask-ai" className="flex flex-col items-center text-gray-600 hover:text-green-600">
           <MessageCircle size={22} />
           <span className="text-xs">AI Chat</span>
         </Link>
@@ -56,8 +56,8 @@ const Footer = () => {
           </div>
           <div>
             <h3 className="font-semibold text-gray-800 mb-3">Contact</h3>
-            <p>Email: support@krishiai.com</p>
-            <p>Phone: +91-XXXXXXXXXX</p>
+            <p>Email: support.krishiaiapp@gmail.com</p>
+            <p>Phone: +91-88225-89404</p>
           </div>
         </div>
         <div className="text-center text-xs text-gray-400 py-4 border-t">
