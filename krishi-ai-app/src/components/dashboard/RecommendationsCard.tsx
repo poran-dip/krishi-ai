@@ -1,15 +1,46 @@
+import { Prisma } from "@/generated/prisma"
+import { useRouter } from "next/navigation"
+import { WeatherData } from "@/services/weatherService"
+
 interface Crop {
   crop: string
   suitability: string
   expectedRevenue: string
 }
 
+type Farmer = Prisma.FarmerGetPayload<{
+  include: {
+    crops: true;
+    settings: true;
+  }
+}>
+
 interface RecommendationsCardProps {
   recommendations: Crop[]
+  soilData: {
+    nitrogen: number | string;
+    phosphorus: number | string;
+    potassium: number | string;
+    ph: number | string;
+    organicMatter: number | string;
+  }
+  weatherData: WeatherData | null
+  farmerData: Farmer | null
   loading: boolean
 }
 
-const RecommendationsCard = ({ recommendations, loading }: RecommendationsCardProps) => {
+const RecommendationsCard = ({ recommendations, soilData, weatherData, farmerData, loading }: RecommendationsCardProps) => {
+  const router = useRouter()
+
+  const handleAIExplain = () => {
+    const query = encodeURIComponent(JSON.stringify({
+      crops: recommendations,
+      soilData,
+      weatherData,
+      farmerData
+    }))
+    router.push(`/ask-ai?data=${query}`)
+  }
   return (
     <div className="mt-3 sm:mt-4 w-full bg-white border border-green-200 rounded-xl p-4 sm:p-6">
       <h3 className="text-sm md:text-base font-medium text-green-900 mb-3">AI Crop Suggestions</h3>
@@ -37,7 +68,10 @@ const RecommendationsCard = ({ recommendations, loading }: RecommendationsCardPr
           ))}
 
           {/* Explain with AI Button */}
-          <button className="col-span-1 sm:col-span-3 w-full md:w-auto bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-medium px-4 py-2 sm:px-5 sm:py-3 text-sm sm:text-base rounded-lg flex items-center gap-2 transition-colors justify-center cursor-pointer">
+          <button 
+            className="col-span-1 sm:col-span-3 w-full md:w-auto bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-medium px-4 py-2 sm:px-5 sm:py-3 text-sm sm:text-base rounded-lg flex items-center gap-2 transition-colors justify-center cursor-pointer"
+            onClick={handleAIExplain}
+          >
             Explain With AI Chatbot
           </button>
         </div>

@@ -5,6 +5,7 @@ import { authUtils } from "@/lib/auth"
 import { Prisma } from "@/generated/prisma"
 import { WeatherData, WeatherAlert, ForecastDay } from '@/services/weatherService'
 import { SoilDataService } from '@/services/soilDataService'
+import { fetchWithTimeout } from "@/utils/fetchWithTimer"
 
 import Navbar from "@/components/dashboard/Navbar"
 import AISuggestions from "./AISuggestions"
@@ -154,24 +155,30 @@ const Dashboard = ({ user }: DashboardProps) => {
         // Priority 1: Use stored lat/lon
         if (farmerData.settings.latitude && farmerData.settings.longitude) {
           console.log('Fetching soil data using stored coordinates')
-          realSoilData = await SoilDataService.fetchSoilData(
-            farmerData.settings.latitude, 
-            farmerData.settings.longitude
+          realSoilData = await fetchWithTimeout(
+            SoilDataService.fetchSoilData(
+              farmerData.settings.latitude, 
+              farmerData.settings.longitude
+            )
           )
         }
         // Priority 2: Use city/state for geocoding
         else if (farmerData.settings.city && farmerData.settings.state) {
           console.log('Fetching soil data using city/state geocoding')
-          realSoilData = await SoilDataService.getSoilDataFromLocation(
-            farmerData.settings.city,
-            farmerData.settings.state,
-            farmerData.settings.country
+          realSoilData = await fetchWithTimeout(
+            SoilDataService.getSoilDataFromLocation(
+              farmerData.settings.city,
+              farmerData.settings.state,
+              farmerData.settings.country
+            )
           )
         }
         // Priority 3: Try current location
         else {
           console.log('Attempting to get current location for soil data')
-          realSoilData = await SoilDataService.getCurrentLocationSoilData()
+          realSoilData = await fetchWithTimeout(
+            SoilDataService.getCurrentLocationSoilData()
+          )
         }
         
         if (realSoilData) {
@@ -225,6 +232,7 @@ const Dashboard = ({ user }: DashboardProps) => {
         <AISuggestions 
           weatherData={weatherData}
           soilData={soilData}
+          farmerData={farmerData}
         />
 
         {/* Farm and Weather Cards */}

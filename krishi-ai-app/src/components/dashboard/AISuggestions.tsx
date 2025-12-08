@@ -5,6 +5,14 @@ import { useState } from "react"
 import { authUtils } from "@/lib/auth"
 import RecommendationsCard from "./RecommendationsCard"
 import { WeatherData } from "@/services/weatherService"
+import { Prisma } from "@/generated/prisma"
+
+type Farmer = Prisma.FarmerGetPayload<{
+  include: {
+    crops: true;
+    settings: true;
+  }
+}>
 
 interface Crop {
   crop: string
@@ -21,9 +29,10 @@ interface AISuggestionsProps {
     ph: number | string;
     organicMatter: number | string;
   }
+  farmerData: Farmer | null
 }
 
-const AISuggestions = ({ weatherData, soilData }: AISuggestionsProps) => {
+const AISuggestions = ({ weatherData, soilData, farmerData }: AISuggestionsProps) => {
   const [showRecommendations, setShowRecommendations] = useState(false)
   const [criteria, setCriteria] = useState("all")
   const [recommendations, setRecommendations] = useState<Crop[]>([])
@@ -111,7 +120,7 @@ const AISuggestions = ({ weatherData, soilData }: AISuggestionsProps) => {
         </div>
 
         {showRecommendations && (
-          <RecommendationsCard recommendations={recommendations} loading={loading} />
+          <RecommendationsCard recommendations={recommendations} soilData={soilData} weatherData={weatherData} farmerData={farmerData} loading={loading} />
         )}
       </div>
     </>

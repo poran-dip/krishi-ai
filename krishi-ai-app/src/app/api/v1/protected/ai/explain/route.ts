@@ -3,11 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { withAuth } from "@/lib/auth";
 
+interface ChatMessage {
+  id: number;
+  type: 'user' | 'bot';
+  content: string;
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export const POST = withAuth(async (req: NextRequest) => {
   try {
-    const { soil, weather, market, crops, prompt } = await req.json();
+    const { soil, weather, market, crops, farmer, prompt, previousMessages } = await req.json();
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -24,6 +30,7 @@ export const POST = withAuth(async (req: NextRequest) => {
 
     const systemPrompt = `You are an AI farming assistant helping Indian farmers understand crop recommendations. You have access to:
 
+**Farmer Info:** ${JSON.stringify(farmer, null, 2)}
 **Soil Data:** ${JSON.stringify(soil, null, 2)}
 **Weather Conditions:** ${JSON.stringify(weather, null, 2)}  
 **Market Prices:** ${JSON.stringify(market, null, 2)}
@@ -102,7 +109,16 @@ Provide EXPERT GUIDANCE, not general suggestions. Use phrases like:
 AVOID saying farmers should make their own decisions - that's why they're asking you!`;
     }
 
-    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+    let contextPrompt = '';
+
+    if (previousMessages && previousMessages.length > 0) {
+      const lastTwo = (previousMessages as ChatMessage[]).slice(-2);
+      contextPrompt = lastTwo
+        .map(msg => `${msg.type === 'user' ? 'Farmer asks:' : 'AI replies:'} ${msg.content}`)
+        .join('\n');
+    }
+
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}\n\nPrevious messages: ${contextPrompt}`;
 
     const result = await model.generateContent(fullPrompt);
     const text = result.response.text();

@@ -4,8 +4,16 @@ import { useState } from "react"
 import { MessageCircle, Send, Bot, User, Sparkles } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
 import { authUtils } from "@/lib/auth"
+import { connection } from 'next/server'
+import { useSearchParams } from "next/navigation"
 
-const AskAI = () => {
+const AskAI = async () => {
+  await connection()
+  
+  const searchParams = useSearchParams()
+  const params = searchParams.get("data")
+  const { crops, soilData, weatherData, farmerData } = params ? JSON.parse(decodeURIComponent(params)) : {}
+
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -39,15 +47,13 @@ const AskAI = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          soil: { pH: 6.5, moisture: 20 },
-          weather: { rainfall: 120, temperature: 28 },
+          soil: soilData,
+          weather: weatherData,
           market: { demandIndex: 75 },
-          crops: [
-            { name: "Rice", revenue: 50000 },
-            { name: "Maize", revenue: 42000 },
-            { name: "Pulses", revenue: 38000 },
-          ],
+          farmer: farmerData,
+          crops: crops,
           prompt: inputMessage,
+          previousMessages: messages.slice(-2)
         }),
       })
 
@@ -96,11 +102,11 @@ const AskAI = () => {
                 </div>
                 <div className="flex-1">
                   <h1 className="text-base sm:text-xl md:text-2xl font-bold mb-1 flex items-center gap-2">
-                    AI Farming Assistant
-                    <Sparkles className="w-5 h-5 text-yellow-300" />
+                    KrishiAI Chatbot
+                    <Sparkles className="w-3 md:w-5 h-3 md:h-5 text-yellow-300" />
                   </h1>
                   <p className="text-emerald-100 text-xs sm:text-sm">
-                    Get intelligent insights for sustainable farming
+                    Get intelligent insights for sustainable farming ~powered by Gemini
                   </p>
                 </div>
                 <div className="hidden md:flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
@@ -118,8 +124,8 @@ const AskAI = () => {
                   className={`flex gap-4 ${message.type === "user" ? "justify-end" : "justify-start"} animate-in slide-in-from-bottom-4 duration-300`}
                 >
                   {message.type === "bot" && (
-                    <div className="w-6 md:w-10 h-6 md:h-10 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg border-2 border-white flex-shrink-0">
-                      <Bot className="text-white w-3 md:w-5 h-3 md:h-5" />
+                    <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg border-2 border-white flex-shrink-0">
+                      <Bot className="text-white w-4 md:w-5 h-4 md:h-5" />
                     </div>
                   )}
                   
@@ -154,8 +160,8 @@ const AskAI = () => {
                   </div>
 
                   {message.type === "user" && (
-                    <div className="w-6 md:w-10 h-6 md:h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-lg border-2 border-white flex-shrink-0">
-                      <User className="text-white w-3 md:w-5 h-3 md:h-5" />
+                    <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-xl flex items-center justify-center shadow-lg border-2 border-white flex-shrink-0">
+                      <User className="text-white w-4 md:w-5 h-4 md:h-5" />
                     </div>
                   )}
                 </div>
@@ -163,15 +169,15 @@ const AskAI = () => {
 
               {loading && (
                 <div className="flex gap-4 justify-start animate-in slide-in-from-bottom-4 duration-300">
-                  <div className="w-6 md:w-10 h-6 md:h-10 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg border-2 border-white flex-shrink-0">
-                    <Bot className="text-white w-3 md:w-5 h-3 md:h-5" />
+                  <div className="w-8 md:w-10 h-8 md:h-10 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg border-2 border-white flex-shrink-0">
+                    <Bot className="text-white w-4 md:w-5 h-4 md:h-5" />
                   </div>
-                  <div className="px-5 py-3 rounded-2xl bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-lg">
+                  <div className="px-3 md:px-5 py-1 md:py-3 rounded-2xl bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-lg">
                     <div className="flex items-center gap-2 text-gray-600">
                       <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                        <div className="w-1 md:w-2 h-1 md:h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                        <div className="w-1 md:w-2 h-1 md:h-2 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-1 md:w-2 h-1 md:h-2 bg-emerald-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                       </div>
                       <span className="text-xs md:text-sm font-medium">Thinking...</span>
                     </div>
@@ -190,7 +196,7 @@ const AskAI = () => {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && !loading && handleSendMessage()}
                     placeholder="Ask about crop rotation, soil health, pest control, market trends..."
-                    className="w-full text-xs md:text-sm px-1 md:px-5 py-1 md:py-4 bg-white/90 backdrop-blur-sm border border-gray-300/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all duration-200 shadow-sm text-gray-800 placeholder-gray-500"
+                    className="w-full text-xs md:text-sm px-2 md:px-5 py-2 md:py-4 bg-white/90 backdrop-blur-sm border border-gray-300/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all duration-200 shadow-sm text-gray-800 placeholder-gray-500"
                     disabled={loading}
                   />
                 </div>
@@ -199,12 +205,12 @@ const AskAI = () => {
                   disabled={loading || !inputMessage.trim()}
                   className="px-2 md:px-6 py-1 md:py-4 bg-gradient-to-r from-emerald-500 to-blue-500 text-white rounded-2xl hover:from-emerald-600 hover:to-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 flex items-center justify-center min-w-8 md:min-w-[3.5rem]"
                 >
-                  <Send className="w-2 md:w-5 h-2 md:h-5" />
+                  <Send className="w-4 md:w-5 h-4 md:h-5" />
                 </button>
               </div>
               
               {/* Quick suggestions */}
-              <div className="mt-2 md:mt-4 flex flex-wrap gap-2">
+              <div className="mt-2 md:mt-4 grid grid-cols-2 md:flex flex-wrap gap-2">
                 {[
                   "🌾 Best crops for monsoon",
                   "🧪 Soil pH optimization", 
@@ -221,6 +227,9 @@ const AskAI = () => {
                   </button>
                 ))}
               </div>
+
+              {/* Spacer */}
+              <div className="h-3 md:hidden"></div>
             </div>
           </div>
         </div>
